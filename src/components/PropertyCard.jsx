@@ -41,7 +41,7 @@ export default function PropertyCard({ property, isFavorite, onToggleFavorite, o
     : null;
 
   const propertyTypeEmoji = {
-    Single Family: "🏡",
+    "Single Family": "🏡",
     Condo: "🏢",
     Townhouse: "🏘️",
     Multi Family: "🏗️",
