@@ -42,10 +42,16 @@ export default function PropertyMap({ properties, selectedProperty, onSelectProp
     markersRef.current.forEach(m => m.remove())
     markersRef.current = []
 
-    const validProps = properties.filter(p => p._lat && p._lng)
+    // Support both _lat/_lng and latitude/longitude from Rentcast
+    const getLat = (p) => p.latitude ?? p._lat
+    const getLng = (p) => p.longitude ?? p._lng
+
+    const validProps = properties.filter(p => getLat(p) && getLng(p))
     if (validProps.length === 0) return
 
     validProps.forEach(p => {
+      const lat = getLat(p)
+      const lng = getLng(p)
       const isSelected = selectedProperty?.id === p.id
 
       const icon = L.divIcon({
@@ -62,12 +68,11 @@ export default function PropertyMap({ properties, selectedProperty, onSelectProp
           white-space: nowrap;
           box-shadow: 0 2px 8px rgba(0,0,0,0.4);
           cursor: pointer;
-          transition: all 0.2s;
         ">${fmt.price(p.price)}</div>`,
         iconAnchor: [0, 0]
       })
 
-      const marker = L.marker([p._lat, p._lng], { icon })
+      const marker = L.marker([lat, lng], { icon })
         .addTo(map)
         .bindPopup(`
           <div style="min-width:180px">
@@ -87,7 +92,7 @@ export default function PropertyMap({ properties, selectedProperty, onSelectProp
     })
 
     // Fit map to markers
-    if (validProps.length > 0) {
+    if (markersRef.current.length > 0) {
       const group = L.featureGroup(markersRef.current)
       map.fitBounds(group.getBounds().pad(0.15))
     }
@@ -124,9 +129,9 @@ export default function PropertyMap({ properties, selectedProperty, onSelectProp
   return (
     <div style={{ position: 'relative', width: '100%', height: '100%' }}>
       <div ref={mapRef} style={{ width: '100%', height: '100%', borderRadius: 8 }} />
-      {properties.filter(p => !p._lat).length > 0 && (
+      {properties.filter(p => !p.latitude && !p._lat).length > 0 && (
         <div style={geocodeWarning}>
-          {properties.filter(p => !p._lat).length} properties not yet geocoded
+          {properties.filter(p => !p.latitude && !p._lat).length} properties missing coordinates
         </div>
       )}
     </div>
@@ -135,7 +140,7 @@ export default function PropertyMap({ properties, selectedProperty, onSelectProp
 
 const geocodeWarning = {
   position: 'absolute', bottom: 10, left: '50%', transform: 'translateX(-50%)',
-  background: 'rgba(0,0,0,0.7)', color: 'var(--text3)', fontSize: 11,
-  fontFamily: 'var(--sans)', padding: '4px 12px', borderRadius: 20, backdropFilter: 'blur(4px)',
-  pointerEvents: 'none',
+  background: 'rgba(0,0,0,0.7)', color: '#9a9690', fontSize: 11,
+  fontFamily: 'DM Sans, sans-serif', padding: '4px 12px', borderRadius: 20,
+  backdropFilter: 'blur(4px)', pointerEvents: 'none',
 }
