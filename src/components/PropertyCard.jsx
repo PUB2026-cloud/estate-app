@@ -18,14 +18,12 @@ const formatAddress = (property) => {
 
 const getZillowUrl = (property) => {
   const address = formatAddress(property);
-  const encoded = encodeURIComponent(address);
-  return `https://www.zillow.com/search/real-estate/?searchQueryState={"usersSearchTerm":"${encoded}","mapBounds":{}}&city=${encodeURIComponent(property.city || "")}&state=${encodeURIComponent(property.state || "")}&searchTerm=${encoded}`;
+  return `https://www.zillow.com/homes/${encodeURIComponent(address)}_rb/`;
 };
 
 const getRedfinUrl = (property) => {
   const address = formatAddress(property);
-  const encoded = encodeURIComponent(address);
-  return `https://www.redfin.com/search#combined?q=${encoded}`;
+  return `https://www.redfin.com/search#combined?q=${encodeURIComponent(address)}&v=2`;
 };
 
 const getGoogleMapsUrl = (property) => {
