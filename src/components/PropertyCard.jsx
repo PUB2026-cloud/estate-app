@@ -1,147 +1,286 @@
-import { Heart, Maximize2, Bed, Bath, MapPin, ExternalLink } from 'lucide-react'
-import { fmt } from '../utils/formatters'
+import { useState } from "react";
+import { Heart, ExternalLink, Bed, Bath, Square, TrendingUp, MapPin } from "lucide-react";
 
-function getZillowUrl(p) {
-  const addr = encodeURIComponent(`${p.addressLine1} ${p.city} ${p.state} ${p.zipCode}`)
-  return `https://www.zillow.com/homes/${addr}_rb/`
-}
+const formatPrice = (p) => {
+  if (!p) return "N/A";
+  return p >= 1000000 ? `$${(p / 1000000).toFixed(2)}M` : `$${(p / 1000).toFixed(0)}K`;
+};
 
-function getRedfinUrl(p) {
-  const addr = encodeURIComponent(`${p.addressLine1}, ${p.city}, ${p.state} ${p.zipCode}`)
-  return `https://www.redfin.com/search#location=${addr}`
-}
+const formatAddress = (property) => {
+  const parts = [
+    property.addressLine1,
+    property.city,
+    property.state,
+    property.zipCode,
+  ].filter(Boolean);
+  return parts.join(", ");
+};
 
-function getStreetViewUrl(p) {
-  if (!p.latitude || !p.longitude) return null
-  return `https://maps.googleapis.com/maps/api/streetview?size=400x200&location=${p.latitude},${p.longitude}&key=YOUR_GOOGLE_KEY`
-}
+const getZillowUrl = (property) => {
+  const address = formatAddress(property);
+  const encoded = encodeURIComponent(address);
+  return `https://www.zillow.com/search/real-estate/?searchQueryState={"usersSearchTerm":"${encoded}","mapBounds":{}}&city=${encodeURIComponent(property.city || "")}&state=${encodeURIComponent(property.state || "")}&searchTerm=${encoded}`;
+};
 
-export default function PropertyCard({ property: p, isFav, onFav, onClick, style }) {
+const getRedfinUrl = (property) => {
+  const address = formatAddress(property);
+  const encoded = encodeURIComponent(address);
+  return `https://www.redfin.com/search#combined?q=${encoded}`;
+};
+
+const getGoogleMapsUrl = (property) => {
+  const address = formatAddress(property);
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
+};
+
+export default function PropertyCard({ property, isFavorite, onToggleFavorite, onViewDetails }) {
+  const [imgError, setImgError] = useState(false);
+
+  const pricePerSqft = property.squareFootage
+    ? Math.round(property.price / property.squareFootage)
+    : null;
+
+  const propertyTypeEmoji = {
+    Single Family: "🏡",
+    Condo: "🏢",
+    Townhouse: "🏘️",
+    Multi Family: "🏗️",
+    Land: "🌿",
+  }[property.propertyType] || "🏠";
+
   return (
-    <div style={{ ...cardStyle, ...style }}>
-      {/* Image / Placeholder */}
-      <div style={imgBox} onClick={() => onClick(p)}>
-        <div style={imgPlaceholder}>{typeEmoji(p.propertyType)}</div>
+    <div style={{
+      background: "#161719",
+      border: "1px solid #222226",
+      borderRadius: 10,
+      overflow: "hidden",
+      transition: "border-color 0.2s, transform 0.2s",
+      fontFamily: "'DM Sans', sans-serif",
+    }}
+      onMouseEnter={e => {
+        e.currentTarget.style.borderColor = "#c9a96e44";
+        e.currentTarget.style.transform = "translateY(-3px)";
+      }}
+      onMouseLeave={e => {
+        e.currentTarget.style.borderColor = "#222226";
+        e.currentTarget.style.transform = "translateY(0)";
+      }}
+    >
+      {/* Image / Emoji Header */}
+      <div style={{
+        background: "#0e0f11",
+        padding: "32px 24px",
+        textAlign: "center",
+        fontSize: 44,
+        borderBottom: "1px solid #1e1e22",
+        position: "relative",
+        minHeight: 100,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+      }}>
+        {propertyTypeEmoji}
+
+        {/* Favorite button */}
         <button
-          style={{ ...favBtn, color: isFav ? '#e05c5c' : 'var(--text2)' }}
-          onClick={e => { e.stopPropagation(); onFav(p) }}
+          onClick={() => onToggleFavorite(property)}
+          style={{
+            position: "absolute",
+            top: 12,
+            left: 12,
+            background: "none",
+            border: "none",
+            cursor: "pointer",
+            color: isFavorite ? "#e74c3c" : "#3a3a40",
+            fontSize: 20,
+            transition: "color 0.2s",
+          }}
         >
-          <Heart size={15} fill={isFav ? '#e05c5c' : 'none'} />
+          <Heart size={20} fill={isFavorite ? "#e74c3c" : "none"} />
         </button>
-        <span style={typeBadge}>{p.propertyType || 'Property'}</span>
-      </div>
 
-      {/* Body */}
-      <div style={body} onClick={() => onClick(p)}>
-        <div style={{ marginBottom: 10 }}>
-          <div style={priceRow}>
-            <span style={price}>{fmt.price(p.price)}</span>
-            {p.squareFootage && p.price && (
-              <span style={ppsf}>{fmt.ppsf(p.price, p.squareFootage)}</span>
-            )}
+        {/* Property type badge */}
+        {property.propertyType && (
+          <div style={{
+            position: "absolute",
+            top: 12,
+            right: 12,
+            background: "#1e1b14",
+            border: "1px solid #c9a96e33",
+            color: "#c9a96e",
+            borderRadius: 4,
+            padding: "2px 8px",
+            fontSize: 11,
+            letterSpacing: 0.5,
+          }}>
+            {property.propertyType}
           </div>
-          <div style={address}>{p.addressLine1}{p.addressLine2 ? `, ${p.addressLine2}` : ''}</div>
-          <div style={cityStyle}>
-            <MapPin size={10} style={{ opacity: 0.5 }} />
-            {p.city}, {p.state} {p.zipCode}
-          </div>
-        </div>
-
-        <div style={divider} />
-
-        <div style={statsRow}>
-          <Stat icon={<Bed size={11} />} val={p.bedrooms ?? '—'} label="beds" />
-          <Stat icon={<Bath size={11} />} val={p.bathrooms ?? '—'} label="baths" />
-          <Stat icon={<Maximize2 size={11} />} val={p.squareFootage ? p.squareFootage.toLocaleString() : '—'} label="sqft" />
-          {p.yearBuilt && <Stat val={p.yearBuilt} label="built" />}
-        </div>
-      </div>
-
-      {/* Links Footer */}
-      <div style={footer}>
-        <a
-          href={getZillowUrl(p)}
-          target="_blank"
-          rel="noreferrer"
-          style={linkBtn}
-          onClick={e => e.stopPropagation()}
-        >
-          <ExternalLink size={11} /> Zillow
-        </a>
-        <a
-          href={getRedfinUrl(p)}
-          target="_blank"
-          rel="noreferrer"
-          style={linkBtn}
-          onClick={e => e.stopPropagation()}
-        >
-          <ExternalLink size={11} /> Redfin
-        </a>
-        {p.mlsName && (
-          <span style={mlsBadge}>{p.mlsName}</span>
         )}
       </div>
+
+      {/* Card Body */}
+      <div style={{ padding: "20px 20px 16px" }}>
+        {/* Price & Address */}
+        <div style={{ marginBottom: 12 }}>
+          <div style={{
+            fontFamily: "'Playfair Display', serif",
+            fontSize: 22,
+            fontWeight: 700,
+            color: "#c9a96e",
+            letterSpacing: -0.5,
+          }}>
+            {formatPrice(property.price)}
+          </div>
+          <div style={{ fontSize: 13, color: "#8a8a8a", marginTop: 3 }}>
+            {property.addressLine1}
+          </div>
+          <div style={{ fontSize: 11, color: "#4a4a50", marginTop: 2, display: "flex", alignItems: "center", gap: 4 }}>
+            <MapPin size={10} />
+            {[property.city, property.state, property.zipCode].filter(Boolean).join(", ")}
+          </div>
+          {property.listedBy && (
+            <div style={{ fontSize: 10, color: "#3a3a40", marginTop: 3 }}>
+              Listed by {property.listedBy}
+            </div>
+          )}
+        </div>
+
+        {/* Divider */}
+        <div style={{ height: 1, background: "#1e1e22", margin: "14px 0" }} />
+
+        {/* Stats */}
+        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 16 }}>
+          <div style={{ textAlign: "center" }}>
+            <div style={{ fontSize: 15, fontWeight: 500, color: "#e8e4dc", display: "flex", alignItems: "center", justifyContent: "center", gap: 4 }}>
+              <Bed size={13} color="#5a5a5a" />{property.bedrooms ?? "—"}
+            </div>
+            <div style={{ fontSize: 10, color: "#5a5a5a", textTransform: "uppercase", letterSpacing: 1, marginTop: 2 }}>Beds</div>
+          </div>
+          <div style={{ textAlign: "center" }}>
+            <div style={{ fontSize: 15, fontWeight: 500, color: "#e8e4dc", display: "flex", alignItems: "center", justifyContent: "center", gap: 4 }}>
+              <Bath size={13} color="#5a5a5a" />{property.bathrooms ?? "—"}
+            </div>
+            <div style={{ fontSize: 10, color: "#5a5a5a", textTransform: "uppercase", letterSpacing: 1, marginTop: 2 }}>Baths</div>
+          </div>
+          <div style={{ textAlign: "center" }}>
+            <div style={{ fontSize: 15, fontWeight: 500, color: "#e8e4dc", display: "flex", alignItems: "center", justifyContent: "center", gap: 4 }}>
+              <Square size={13} color="#5a5a5a" />{property.squareFootage?.toLocaleString() ?? "—"}
+            </div>
+            <div style={{ fontSize: 10, color: "#5a5a5a", textTransform: "uppercase", letterSpacing: 1, marginTop: 2 }}>Sq Ft</div>
+          </div>
+          <div style={{ textAlign: "center" }}>
+            <div style={{ fontSize: 15, fontWeight: 500, color: "#e8e4dc", display: "flex", alignItems: "center", justifyContent: "center", gap: 4 }}>
+              <TrendingUp size={13} color="#5a5a5a" />{pricePerSqft ? `$${pricePerSqft.toLocaleString()}` : "—"}
+            </div>
+            <div style={{ fontSize: 10, color: "#5a5a5a", textTransform: "uppercase", letterSpacing: 1, marginTop: 2 }}>/sqft</div>
+          </div>
+        </div>
+
+        {/* Details button */}
+        {onViewDetails && (
+          <button
+            onClick={() => onViewDetails(property)}
+            style={{
+              width: "100%",
+              background: "#1a1c1e",
+              border: "1px solid #2a2a2e",
+              color: "#e8e4dc",
+              borderRadius: 6,
+              padding: "9px 0",
+              fontSize: 13,
+              cursor: "pointer",
+              marginBottom: 10,
+              transition: "background 0.2s",
+            }}
+            onMouseEnter={e => e.currentTarget.style.background = "#222427"}
+            onMouseLeave={e => e.currentTarget.style.background = "#1a1c1e"}
+          >
+            View Details & Comps
+          </button>
+        )}
+
+        {/* External Links */}
+        <div style={{ display: "flex", gap: 8 }}>
+          <a
+            href={getZillowUrl(property)}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              flex: 1,
+              background: "#1557b0",
+              color: "#fff",
+              border: "none",
+              borderRadius: 6,
+              padding: "8px 0",
+              fontSize: 12,
+              cursor: "pointer",
+              textDecoration: "none",
+              textAlign: "center",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 4,
+              transition: "background 0.2s",
+            }}
+            onMouseEnter={e => e.currentTarget.style.background = "#1a6fd4"}
+            onMouseLeave={e => e.currentTarget.style.background = "#1557b0"}
+          >
+            <ExternalLink size={11} /> Zillow
+          </a>
+          <a
+            href={getRedfinUrl(property)}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              flex: 1,
+              background: "#cc2c2c",
+              color: "#fff",
+              border: "none",
+              borderRadius: 6,
+              padding: "8px 0",
+              fontSize: 12,
+              cursor: "pointer",
+              textDecoration: "none",
+              textAlign: "center",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 4,
+              transition: "background 0.2s",
+            }}
+            onMouseEnter={e => e.currentTarget.style.background = "#e03333"}
+            onMouseLeave={e => e.currentTarget.style.background = "#cc2c2c"}
+          >
+            <ExternalLink size={11} /> Redfin
+          </a>
+          <a
+            href={getGoogleMapsUrl(property)}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              flex: 1,
+              background: "#2d7a4f",
+              color: "#fff",
+              border: "none",
+              borderRadius: 6,
+              padding: "8px 0",
+              fontSize: 12,
+              cursor: "pointer",
+              textDecoration: "none",
+              textAlign: "center",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 4,
+              transition: "background 0.2s",
+            }}
+            onMouseEnter={e => e.currentTarget.style.background = "#369960"}
+            onMouseLeave={e => e.currentTarget.style.background = "#2d7a4f"}
+          >
+            <ExternalLink size={11} /> Maps
+          </a>
+        </div>
+      </div>
     </div>
-  )
-}
-
-function Stat({ icon, val, label }) {
-  return (
-    <div style={{ textAlign: 'center' }}>
-      {icon && <div style={{ color: 'var(--text3)', marginBottom: 2 }}>{icon}</div>}
-      <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text)' }}>{val}</div>
-      <div style={{ fontSize: 10, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.8px' }}>{label}</div>
-    </div>
-  )
-}
-
-function typeEmoji(type) {
-  const map = {
-    'Single Family': '🏡',
-    'Condo': '🏢',
-    'Townhouse': '🏘️',
-    'Multi Family': '🏗️',
-    'Multi-Family': '🏗️',
-    'Land': '🌿'
-  }
-  return <span style={{ fontSize: 52 }}>{map[type] || '🏠'}</span>
-}
-
-const cardStyle = {
-  background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 10,
-  overflow: 'hidden', cursor: 'pointer', transition: 'border-color 0.2s, transform 0.2s, box-shadow 0.2s',
-  display: 'flex', flexDirection: 'column',
-}
-const imgBox = { position: 'relative', height: 160, background: 'var(--bg)', overflow: 'hidden', cursor: 'pointer' }
-const imgPlaceholder = { width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(135deg, #0e0f12, #1a1b1e)' }
-const favBtn = { position: 'absolute', top: 10, right: 10, background: 'rgba(0,0,0,0.6)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 6, padding: '6px 8px', cursor: 'pointer', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center' }
-const typeBadge = { position: 'absolute', bottom: 10, left: 10, background: 'rgba(0,0,0,0.7)', color: 'var(--gold)', border: '1px solid var(--gold-dim)', borderRadius: 4, padding: '3px 8px', fontSize: 10, letterSpacing: '0.8px', textTransform: 'uppercase', backdropFilter: 'blur(4px)' }
-const body = { padding: '14px 16px 12px', flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }
-const priceRow = { display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 4 }
-const price = { fontFamily: 'var(--serif)', fontSize: 20, fontWeight: 700, color: 'var(--gold)', letterSpacing: -0.5 }
-const ppsf = { fontSize: 11, color: 'var(--text3)', fontFamily: 'var(--sans)' }
-const address = { fontSize: 13, color: 'var(--text)', fontFamily: 'var(--sans)', marginBottom: 2 }
-const cityStyle = { fontSize: 11, color: 'var(--text3)', fontFamily: 'var(--sans)', display: 'flex', alignItems: 'center', gap: 3 }
-const divider = { height: 1, background: 'var(--border)', margin: '10px 0' }
-const statsRow = { display: 'flex', justifyContent: 'space-between' }
-const footer = { 
-  borderTop: '1px solid var(--border)', 
-  padding: '10px 14px', 
-  display: 'flex', 
-  gap: 8, 
-  alignItems: 'center',
-  background: 'var(--surface2)'
-}
-const linkBtn = { 
-  display: 'inline-flex', alignItems: 'center', gap: 4,
-  background: 'var(--bg)', border: '1px solid var(--border2)', 
-  color: 'var(--gold)', borderRadius: 5, padding: '4px 10px', 
-  fontSize: 11, fontFamily: 'var(--sans)', textDecoration: 'none',
-  transition: 'border-color 0.15s',
-  cursor: 'pointer'
-}
-const mlsBadge = { 
-  marginLeft: 'auto', fontSize: 10, color: 'var(--text3)', 
-  fontFamily: 'var(--sans)', letterSpacing: '0.5px',
-  overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 100
+  );
 }
