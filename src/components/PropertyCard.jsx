@@ -42,10 +42,10 @@ export default function PropertyCard({ property, isFavorite, onToggleFavorite, o
 
   const propertyTypeEmoji = {
     "Single Family": "🏡",
-    Condo: "🏢",
-    Townhouse: "🏘️",
-    Multi Family: "🏗️",
-    Land: "🌿",
+    "Condo": "🏢",
+    "Townhouse": "🏘️",
+    "Multi Family": "🏗️",
+    "Land": "🌿",
   }[property.propertyType] || "🏠";
 
   return (
