@@ -10,7 +10,7 @@ const headers = {
 
 // Search properties for sale by ZIP code
 export async function searchListings({ zipCode, minPrice, maxPrice, minSize, maxSize, bedrooms, propertyType, limit = 20 }) {
-  const params = new URLSearchParams({ zipCode, limit })
+  const params = new URLSearchParams({ zipCode, limit, status: "Active" })
   if (minPrice) params.append('priceMin', minPrice)
   if (maxPrice) params.append('priceMax', maxPrice)
   if (minSize) params.append('squareFootageMin', minSize)
