@@ -32,7 +32,7 @@ const getGoogleMapsUrl = (property) => {
 };
 
 export default function PropertyCard({ property, isFavorite, onToggleFavorite, onViewDetails }) {
-  const [imgError, setImgError] = useState(false);
+  const [hovered, setHovered] = useState(false);
 
   const pricePerSqft = property.squareFootage
     ? Math.round(property.price / property.squareFootage)
@@ -47,32 +47,29 @@ export default function PropertyCard({ property, isFavorite, onToggleFavorite, o
   }[property.propertyType] || "🏠";
 
   return (
-    <div style={{
-      background: "#161719",
-      border: "1px solid #222226",
-      borderRadius: 10,
-      overflow: "hidden",
-      transition: "border-color 0.2s, transform 0.2s",
-      fontFamily: "'DM Sans', sans-serif",
-    }}
-      onMouseEnter={e => {
-        e.currentTarget.style.borderColor = "#c9a96e44";
-        e.currentTarget.style.transform = "translateY(-3px)";
+    <div
+      style={{
+        background: "var(--surface)",
+        border: `1px solid ${hovered ? "var(--gold)" : "var(--border)"}`,
+        borderRadius: 10,
+        overflow: "hidden",
+        transition: "border-color 0.2s, transform 0.2s, box-shadow 0.2s",
+        transform: hovered ? "translateY(-3px)" : "translateY(0)",
+        boxShadow: hovered ? "0 6px 24px rgba(0,0,0,0.08)" : "0 1px 4px rgba(0,0,0,0.04)",
+        fontFamily: "var(--sans)",
       }}
-      onMouseLeave={e => {
-        e.currentTarget.style.borderColor = "#222226";
-        e.currentTarget.style.transform = "translateY(0)";
-      }}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
     >
       {/* Image / Emoji Header */}
       <div style={{
-        background: "#0e0f11",
-        padding: "32px 24px",
+        background: "var(--surface2)",
+        padding: "28px 24px",
         textAlign: "center",
-        fontSize: 44,
-        borderBottom: "1px solid #1e1e22",
+        fontSize: 40,
+        borderBottom: "1px solid var(--border)",
         position: "relative",
-        minHeight: 100,
+        minHeight: 96,
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
@@ -81,35 +78,41 @@ export default function PropertyCard({ property, isFavorite, onToggleFavorite, o
 
         {/* Favorite button */}
         <button
-          onClick={() => onToggleFavorite(property)}
+          onClick={() => onToggleFavorite && onToggleFavorite(property)}
           style={{
             position: "absolute",
-            top: 12,
-            left: 12,
-            background: "none",
-            border: "none",
+            top: 10,
+            left: 10,
+            background: "var(--surface)",
+            border: "1px solid var(--border)",
+            borderRadius: 6,
+            width: 30,
+            height: 30,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
             cursor: "pointer",
-            color: isFavorite ? "#e74c3c" : "#3a3a40",
-            fontSize: 20,
-            transition: "color 0.2s",
+            color: isFavorite ? "#c0392b" : "var(--text3)",
+            transition: "all 0.2s",
           }}
         >
-          <Heart size={20} fill={isFavorite ? "#e74c3c" : "none"} />
+          <Heart size={14} fill={isFavorite ? "#c0392b" : "none"} />
         </button>
 
         {/* Property type badge */}
         {property.propertyType && (
           <div style={{
             position: "absolute",
-            top: 12,
-            right: 12,
-            background: "#1e1b14",
-            border: "1px solid #c9a96e33",
-            color: "#c9a96e",
+            top: 10,
+            right: 10,
+            background: "var(--gold-dim)",
+            border: "1px solid var(--gold)",
+            color: "var(--gold)",
             borderRadius: 4,
             padding: "2px 8px",
-            fontSize: 11,
+            fontSize: 10,
             letterSpacing: 0.5,
+            fontWeight: 500,
           }}>
             {property.propertyType}
           </div>
@@ -117,168 +120,115 @@ export default function PropertyCard({ property, isFavorite, onToggleFavorite, o
       </div>
 
       {/* Card Body */}
-      <div style={{ padding: "20px 20px 16px" }}>
+      <div style={{ padding: "16px 18px 14px" }}>
         {/* Price & Address */}
         <div style={{ marginBottom: 12 }}>
           <div style={{
-            fontFamily: "'Playfair Display', serif",
+            fontFamily: "var(--serif)",
             fontSize: 22,
             fontWeight: 700,
-            color: "#c9a96e",
+            color: "var(--gold)",
             letterSpacing: -0.5,
           }}>
             {formatPrice(property.price)}
           </div>
-          <div style={{ fontSize: 13, color: "#8a8a8a", marginTop: 3 }}>
+          <div style={{ fontSize: 13, color: "var(--text)", marginTop: 3, fontWeight: 500 }}>
             {property.addressLine1}
           </div>
-          <div style={{ fontSize: 11, color: "#4a4a50", marginTop: 2, display: "flex", alignItems: "center", gap: 4 }}>
+          <div style={{ fontSize: 11, color: "var(--text3)", marginTop: 2, display: "flex", alignItems: "center", gap: 4 }}>
             <MapPin size={10} />
             {[property.city, property.state, property.zipCode].filter(Boolean).join(", ")}
           </div>
-          {property.listedBy && (
-            <div style={{ fontSize: 10, color: "#3a3a40", marginTop: 3 }}>
-              Listed by {property.listedBy}
-            </div>
-          )}
         </div>
 
         {/* Divider */}
-        <div style={{ height: 1, background: "#1e1e22", margin: "14px 0" }} />
+        <div style={{ height: 1, background: "var(--border)", margin: "12px 0" }} />
 
         {/* Stats */}
-        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 16 }}>
-          <div style={{ textAlign: "center" }}>
-            <div style={{ fontSize: 15, fontWeight: 500, color: "#e8e4dc", display: "flex", alignItems: "center", justifyContent: "center", gap: 4 }}>
-              <Bed size={13} color="#5a5a5a" />{property.bedrooms ?? "—"}
-            </div>
-            <div style={{ fontSize: 10, color: "#5a5a5a", textTransform: "uppercase", letterSpacing: 1, marginTop: 2 }}>Beds</div>
-          </div>
-          <div style={{ textAlign: "center" }}>
-            <div style={{ fontSize: 15, fontWeight: 500, color: "#e8e4dc", display: "flex", alignItems: "center", justifyContent: "center", gap: 4 }}>
-              <Bath size={13} color="#5a5a5a" />{property.bathrooms ?? "—"}
-            </div>
-            <div style={{ fontSize: 10, color: "#5a5a5a", textTransform: "uppercase", letterSpacing: 1, marginTop: 2 }}>Baths</div>
-          </div>
-          <div style={{ textAlign: "center" }}>
-            <div style={{ fontSize: 15, fontWeight: 500, color: "#e8e4dc", display: "flex", alignItems: "center", justifyContent: "center", gap: 4 }}>
-              <Square size={13} color="#5a5a5a" />{property.squareFootage?.toLocaleString() ?? "—"}
-            </div>
-            <div style={{ fontSize: 10, color: "#5a5a5a", textTransform: "uppercase", letterSpacing: 1, marginTop: 2 }}>Sq Ft</div>
-          </div>
-          <div style={{ textAlign: "center" }}>
-            <div style={{ fontSize: 15, fontWeight: 500, color: "#e8e4dc", display: "flex", alignItems: "center", justifyContent: "center", gap: 4 }}>
-              <TrendingUp size={13} color="#5a5a5a" />{pricePerSqft ? `$${pricePerSqft.toLocaleString()}` : "—"}
-            </div>
-            <div style={{ fontSize: 10, color: "#5a5a5a", textTransform: "uppercase", letterSpacing: 1, marginTop: 2 }}>/sqft</div>
-          </div>
+        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 14 }}>
+          <StatCell icon={<Bed size={12} color="var(--text3)" />} val={property.bedrooms ?? "—"} label="Beds" />
+          <StatCell icon={<Bath size={12} color="var(--text3)" />} val={property.bathrooms ?? "—"} label="Baths" />
+          <StatCell icon={<Square size={12} color="var(--text3)" />} val={property.squareFootage?.toLocaleString() ?? "—"} label="Sq Ft" />
+          <StatCell icon={<TrendingUp size={12} color="var(--text3)" />} val={pricePerSqft ? `$${pricePerSqft.toLocaleString()}` : "—"} label="/sqft" />
         </div>
 
-        {/* Details button */}
+        {/* View Details button */}
         {onViewDetails && (
           <button
             onClick={() => onViewDetails(property)}
             style={{
               width: "100%",
-              background: "#1a1c1e",
-              border: "1px solid #2a2a2e",
-              color: "#e8e4dc",
+              background: "var(--gold)",
+              border: "none",
+              color: "#fff",
               borderRadius: 6,
               padding: "9px 0",
               fontSize: 13,
+              fontWeight: 600,
               cursor: "pointer",
               marginBottom: 10,
-              transition: "background 0.2s",
+              fontFamily: "var(--sans)",
+              transition: "opacity 0.2s",
+              letterSpacing: 0.2,
             }}
-            onMouseEnter={e => e.currentTarget.style.background = "#222427"}
-            onMouseLeave={e => e.currentTarget.style.background = "#1a1c1e"}
+            onMouseEnter={e => e.currentTarget.style.opacity = "0.88"}
+            onMouseLeave={e => e.currentTarget.style.opacity = "1"}
           >
             View Details & Comps
           </button>
         )}
 
         {/* External Links */}
-        <div style={{ display: "flex", gap: 8 }}>
-          <a
-            href={getZillowUrl(property)}
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{
-              flex: 1,
-              background: "#1557b0",
-              color: "#fff",
-              border: "none",
-              borderRadius: 6,
-              padding: "8px 0",
-              fontSize: 12,
-              cursor: "pointer",
-              textDecoration: "none",
-              textAlign: "center",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: 4,
-              transition: "background 0.2s",
-            }}
-            onMouseEnter={e => e.currentTarget.style.background = "#1a6fd4"}
-            onMouseLeave={e => e.currentTarget.style.background = "#1557b0"}
-          >
-            <ExternalLink size={11} /> Zillow
-          </a>
-          <a
-            href={getRedfinUrl(property)}
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{
-              flex: 1,
-              background: "#cc2c2c",
-              color: "#fff",
-              border: "none",
-              borderRadius: 6,
-              padding: "8px 0",
-              fontSize: 12,
-              cursor: "pointer",
-              textDecoration: "none",
-              textAlign: "center",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: 4,
-              transition: "background 0.2s",
-            }}
-            onMouseEnter={e => e.currentTarget.style.background = "#e03333"}
-            onMouseLeave={e => e.currentTarget.style.background = "#cc2c2c"}
-          >
-            <ExternalLink size={11} /> Redfin
-          </a>
-          <a
-            href={getGoogleMapsUrl(property)}
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{
-              flex: 1,
-              background: "#2d7a4f",
-              color: "#fff",
-              border: "none",
-              borderRadius: 6,
-              padding: "8px 0",
-              fontSize: 12,
-              cursor: "pointer",
-              textDecoration: "none",
-              textAlign: "center",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: 4,
-              transition: "background 0.2s",
-            }}
-            onMouseEnter={e => e.currentTarget.style.background = "#369960"}
-            onMouseLeave={e => e.currentTarget.style.background = "#2d7a4f"}
-          >
-            <ExternalLink size={11} /> Maps
-          </a>
+        <div style={{ display: "flex", gap: 6 }}>
+          <LinkBtn href={getZillowUrl(property)} color="#1557b0" label="Zillow" />
+          <LinkBtn href={getRedfinUrl(property)} color="#b52424" label="Redfin" />
+          <LinkBtn href={getGoogleMapsUrl(property)} color="#27714f" label="Maps" />
         </div>
       </div>
     </div>
+  );
+}
+
+function StatCell({ icon, val, label }) {
+  return (
+    <div style={{ textAlign: "center" }}>
+      <div style={{ fontSize: 14, fontWeight: 500, color: "var(--text)", display: "flex", alignItems: "center", justifyContent: "center", gap: 3 }}>
+        {icon}{val}
+      </div>
+      <div style={{ fontSize: 10, color: "var(--text3)", textTransform: "uppercase", letterSpacing: 1, marginTop: 2 }}>{label}</div>
+    </div>
+  );
+}
+
+function LinkBtn({ href, color, label }) {
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      style={{
+        flex: 1,
+        background: color,
+        color: "#fff",
+        borderRadius: 5,
+        padding: "7px 0",
+        fontSize: 11,
+        fontWeight: 500,
+        cursor: "pointer",
+        textDecoration: "none",
+        textAlign: "center",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 4,
+        opacity: 0.9,
+        transition: "opacity 0.2s",
+        fontFamily: "var(--sans)",
+      }}
+      onMouseEnter={e => e.currentTarget.style.opacity = "1"}
+      onMouseLeave={e => e.currentTarget.style.opacity = "0.9"}
+    >
+      <ExternalLink size={10} /> {label}
+    </a>
   );
 }

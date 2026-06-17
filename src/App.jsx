@@ -36,6 +36,7 @@ export default function App() {
           const data = r.value
           const listings = Array.isArray(data) ? data : (data.data || [])
           combined.push(...listings)
+if (listings.length > 0) console.log('Sample property fields:', JSON.stringify(listings[0], null, 2))
         } else {
           console.warn('Failed ZIP ' + zips[i] + ':', r.reason)
         }
@@ -49,7 +50,22 @@ export default function App() {
         return true
       })
 
-      const sorted = sortProperties(unique, sortBy)
+      // Apply client-side filters
+let filtered = unique
+
+if (filters.minLotSize) {
+  filtered = filtered.filter(p => (p.lotSize || 0) >= Number(filters.minLotSize))
+}
+
+if (filters.zoningDistricts && filters.zoningDistricts.length > 0) {
+  filtered = filtered.filter(p =>
+    filters.zoningDistricts.some(z =>
+      (p.zoning || '').toUpperCase().startsWith(z)
+    )
+  )
+}
+
+const sorted = sortProperties(filtered, sortBy)
 
       // Rentcast already provides lat/lng
       const withCoords = sorted.map(p => ({
@@ -174,9 +190,9 @@ export default function App() {
                     <PropertyCard
                       key={p.id || i}
                       property={p}
-                      isFav={isFav(p.id)}
-                      onFav={toggleFav}
-                      onClick={setSelectedProperty}
+                      isFavorite={isFav(p.id)}
+                      onToggleFavorite={toggleFav}
+                      onViewDetails={setSelectedProperty}
                       style={{ animationDelay: Math.min(i * 40, 400) + 'ms', animation: 'fadeUp 0.4s ease both' }}
                     />
                   ))}
@@ -190,7 +206,7 @@ export default function App() {
               <PropertyDetail
                 property={selectedProperty}
                 isFav={isFav(selectedProperty.id)}
-                onFav={toggleFav}
+                onToggleFavorite={toggleFav}
                 onClose={() => setSelectedProperty(null)}
               />
             </div>

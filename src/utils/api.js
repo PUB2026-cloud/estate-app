@@ -9,14 +9,14 @@ const headers = {
 }
 
 // Search properties for sale by ZIP code
-export async function searchListings({ zipCode, minPrice, maxPrice, minSize, maxSize, bedrooms, propertyType, limit = 20 }) {
+export async function searchListings({ zipCode, minPrice, maxPrice, minSize, maxSize, bedrooms, propertyType, limit = 500 }) {
   const params = new URLSearchParams({ zipCode, limit, status: "Active" })
   if (minPrice) params.append('priceMin', minPrice)
   if (maxPrice) params.append('priceMax', maxPrice)
   if (minSize) params.append('squareFootageMin', minSize)
   if (maxSize) params.append('squareFootageMax', maxSize)
   if (bedrooms && bedrooms !== 'Any') params.append('bedroomsMin', bedrooms)
-  if (propertyType && propertyType !== 'Any') params.append('propertyType', propertyType.toUpperCase())
+  if (propertyType && propertyType !== 'Any') params.append('propertyType', propertyType)
 
   const res = await fetch(`${BASE}/listings/sale?${params}`, { headers })
   if (!res.ok) throw new Error(`Rentcast error: ${res.status}`)

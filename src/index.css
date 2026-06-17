@@ -1,17 +1,17 @@
 :root {
-  --bg: #0b0c0e;
-  --surface: #131416;
-  --surface2: #1a1b1e;
-  --border: #222428;
-  --border2: #2a2c32;
-  --gold: #c9a96e;
-  --gold2: #dabb82;
-  --gold-dim: rgba(201,169,110,0.15);
-  --text: #e8e4dc;
-  --text2: #9a9690;
-  --text3: #5a5650;
-  --red: #e05c5c;
-  --green: #5cb88a;
+  --bg: #f5f5f3;
+  --surface: #ffffff;
+  --surface2: #f0efed;
+  --border: #e2e0dc;
+  --border2: #d0cec9;
+  --gold: #9a7440;
+  --gold2: #b8894e;
+  --gold-dim: rgba(154,116,64,0.1);
+  --text: #1a1814;
+  --text2: #5a5650;
+  --text3: #9a9690;
+  --red: #c0392b;
+  --green: #27714f;
   --serif: 'Playfair Display', serif;
   --sans: 'DM Sans', sans-serif;
 }
@@ -26,14 +26,14 @@ body {
 }
 
 ::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: var(--surface); }
+::-webkit-scrollbar-track { background: var(--surface2); }
 ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--text3); }
 
-.leaflet-container { background: #0e0f12 !important; }
-.leaflet-tile { filter: invert(1) hue-rotate(180deg) brightness(0.85) contrast(0.9); }
+.leaflet-container { background: #e8e8e4 !important; }
+.leaflet-tile { filter: brightness(1.02) contrast(0.95) saturate(0.85); }
 .leaflet-control-zoom a { background: var(--surface) !important; color: var(--text) !important; border-color: var(--border) !important; }
-.leaflet-popup-content-wrapper { background: var(--surface) !important; border: 1px solid var(--border2) !important; border-radius: 8px !important; box-shadow: 0 8px 32px rgba(0,0,0,0.5) !important; }
+.leaflet-popup-content-wrapper { background: var(--surface) !important; border: 1px solid var(--border2) !important; border-radius: 8px !important; box-shadow: 0 4px 20px rgba(0,0,0,0.12) !important; }
 .leaflet-popup-content { color: var(--text) !important; font-family: var(--sans) !important; margin: 14px 16px !important; }
 .leaflet-popup-tip { background: var(--surface) !important; }
 .leaflet-popup-close-button { color: var(--text2) !important; }
@@ -45,5 +45,8 @@ body {
 @keyframes pulse {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.4; }
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }
 .animate-fade-up { animation: fadeUp 0.4s ease forwards; }

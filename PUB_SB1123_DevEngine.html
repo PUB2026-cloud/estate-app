@@ -1,0 +1,1269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PUB SB1123 Dev Engine</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #F7F6F3;
+    --surface: #FFFFFF;
+    --surface2: #F2F1ED;
+    --border: rgba(0,0,0,0.1);
+    --border-strong: rgba(0,0,0,0.2);
+    --text: #1A1A18;
+    --text-muted: #6B6B67;
+    --text-faint: #9B9B96;
+    --accent: #1D9E75;
+    --accent-light: #E1F5EE;
+    --accent-text: #0F6E56;
+    --warn: #854F0B;
+    --warn-light: #FAEEDA;
+    --danger: #A32D2D;
+    --danger-light: #FCEBEB;
+    --radius: 8px;
+    --radius-lg: 12px;
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 14px;
+    line-height: 1.6;
+    min-height: 100vh;
+  }
+
+  /* SIDEBAR */
+  .shell { display: flex; min-height: 100vh; }
+
+  .sidebar {
+    width: 260px;
+    min-width: 260px;
+    background: var(--text);
+    color: #fff;
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+    position: fixed;
+    top: 0; left: 0; bottom: 0;
+    z-index: 10;
+    overflow-y: auto;
+  }
+
+  .sidebar-top { padding: 24px 20px 20px; border-bottom: 1px solid rgba(255,255,255,0.1); }
+  .pub-mark { font-size: 10px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: rgba(255,255,255,0.4); margin-bottom: 6px; }
+  .sidebar-title { font-size: 16px; font-weight: 600; color: #fff; line-height: 1.3; }
+  .sidebar-sub { font-size: 12px; color: rgba(255,255,255,0.45); margin-top: 4px; }
+
+  .api-section { padding: 16px 20px; border-bottom: 1px solid rgba(255,255,255,0.1); }
+  .api-label { font-size: 10px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: rgba(255,255,255,0.4); margin-bottom: 8px; }
+  .api-input-wrap { position: relative; }
+  .api-input {
+    width: 100%;
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: var(--radius);
+    color: #fff;
+    font-size: 12px;
+    padding: 8px 34px 8px 10px;
+    font-family: monospace;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .api-input::placeholder { color: rgba(255,255,255,0.3); }
+  .api-input:focus { border-color: var(--accent); }
+  .api-toggle { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); background: none; border: none; color: rgba(255,255,255,0.4); cursor: pointer; font-size: 12px; }
+  .api-status { font-size: 11px; margin-top: 6px; color: rgba(255,255,255,0.4); }
+  .api-status.ok { color: #5DCAA5; }
+
+  .sidebar-section { padding: 16px 20px; border-bottom: 1px solid rgba(255,255,255,0.08); }
+  .sidebar-section-label { font-size: 10px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: rgba(255,255,255,0.3); margin-bottom: 10px; }
+
+  .history-item {
+    padding: 8px 10px;
+    border-radius: var(--radius);
+    cursor: pointer;
+    margin-bottom: 4px;
+    transition: background 0.1s;
+    border: 1px solid transparent;
+  }
+  .history-item:hover { background: rgba(255,255,255,0.08); }
+  .history-item.active { background: rgba(29,158,117,0.2); border-color: rgba(29,158,117,0.3); }
+  .history-addr { font-size: 12px; font-weight: 500; color: rgba(255,255,255,0.85); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .history-meta { font-size: 11px; color: rgba(255,255,255,0.35); margin-top: 2px; display: flex; align-items: center; gap: 6px; }
+  .verdict-dot { width: 6px; height: 6px; border-radius: 50%; display: inline-block; }
+
+  .sidebar-footer { margin-top: auto; padding: 16px 20px; border-top: 1px solid rgba(255,255,255,0.08); }
+  .clear-btn { font-size: 11px; color: rgba(255,255,255,0.3); background: none; border: none; cursor: pointer; padding: 0; }
+  .clear-btn:hover { color: rgba(255,255,255,0.6); }
+
+  /* MAIN */
+  .main { margin-left: 260px; flex: 1; display: flex; flex-direction: column; }
+
+  .topbar {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 14px 32px;
+    display: flex; align-items: center; gap: 12px;
+    position: sticky; top: 0; z-index: 5;
+  }
+  .topbar-addr { font-size: 15px; font-weight: 500; color: var(--text); flex: 1; }
+  .topbar-status { font-size: 11px; padding: 3px 10px; border-radius: 20px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; }
+  .status-idle { background: var(--surface2); color: var(--text-faint); }
+  .status-running { background: var(--warn-light); color: var(--warn); }
+  .status-done { background: var(--accent-light); color: var(--accent-text); }
+  .status-error { background: var(--danger-light); color: var(--danger); }
+
+  .content { flex: 1; padding: 32px; max-width: 900px; }
+
+  /* INPUT FORM */
+  .form-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 24px;
+    margin-bottom: 24px;
+  }
+
+  .form-section-label {
+    font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase;
+    color: var(--text-faint); margin-bottom: 12px;
+  }
+
+  .field-row { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
+  .field { display: flex; flex-direction: column; gap: 5px; }
+  .field.grow { flex: 1; min-width: 200px; }
+  .field.w120 { width: 120px; min-width: 120px; }
+  .field.w160 { width: 160px; min-width: 160px; }
+
+  label { font-size: 11px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: var(--text-muted); }
+
+  input[type="text"], input[type="password"], select, textarea {
+    font-family: inherit;
+    font-size: 13px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 8px 10px;
+    color: var(--text);
+    outline: none;
+    transition: border-color 0.15s;
+    width: 100%;
+  }
+  input:focus, select:focus, textarea:focus { border-color: var(--accent); background: #fff; }
+  textarea { resize: vertical; min-height: 64px; line-height: 1.5; }
+
+  .divider { height: 1px; background: var(--border); margin: 20px 0; }
+
+  .scope-row { display: flex; gap: 8px; flex-wrap: wrap; }
+  .scope-chip {
+    font-size: 12px; padding: 5px 12px; border-radius: 20px;
+    border: 1px solid var(--border);
+    cursor: pointer; color: var(--text-muted); background: var(--bg);
+    font-family: inherit; transition: all 0.1s; user-select: none;
+  }
+  .scope-chip:hover { border-color: var(--border-strong); color: var(--text); }
+  .scope-chip.on { background: var(--text); color: #fff; border-color: var(--text); }
+
+  .run-row { display: flex; align-items: center; gap: 12px; margin-top: 20px; flex-wrap: wrap; }
+
+  .run-btn {
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: var(--radius);
+    padding: 0 24px;
+    height: 40px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex; align-items: center; gap: 8px;
+    font-family: inherit;
+    transition: opacity 0.15s, transform 0.1s;
+  }
+  .run-btn:hover { opacity: 0.88; }
+  .run-btn:active { transform: scale(0.98); }
+  .run-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+  .stop-btn {
+    background: none; border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 0 16px; height: 40px; font-size: 13px; font-weight: 500;
+    cursor: pointer; color: var(--text-muted); font-family: inherit;
+    display: none; align-items: center; gap: 6px;
+    transition: border-color 0.15s;
+  }
+  .stop-btn:hover { border-color: var(--danger); color: var(--danger); }
+
+  .err-msg { font-size: 12px; color: var(--danger); display: none; }
+
+  /* STEP TRACKER */
+  .step-tracker {
+    display: none;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 16px 24px;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+    gap: 0;
+  }
+  .step-tracker.visible { display: flex; }
+
+  .tracker-step {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 12px; font-weight: 500; color: var(--text-faint);
+    padding: 4px 0;
+    flex: 1; min-width: 130px;
+  }
+  .tracker-step .dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    border: 2px solid currentColor; flex-shrink: 0;
+    transition: all 0.2s;
+  }
+  .tracker-step.active { color: var(--accent); }
+  .tracker-step.active .dot { background: var(--accent); border-color: var(--accent); }
+  .tracker-step.done { color: var(--text-muted); }
+  .tracker-step.done .dot { background: var(--text-muted); border-color: var(--text-muted); }
+
+  /* OUTPUT */
+  .output-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 28px 32px;
+    display: none;
+    margin-bottom: 24px;
+  }
+  .output-card.visible { display: block; }
+
+  .output-body {
+    font-size: 14px;
+    line-height: 1.75;
+    color: var(--text);
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  .output-body h2 {
+    font-size: 16px; font-weight: 700; margin: 24px 0 8px;
+    color: var(--text); border-bottom: 1px solid var(--border); padding-bottom: 6px;
+  }
+  .output-body h2:first-child { margin-top: 0; }
+  .output-body h3 { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); margin: 18px 0 6px; }
+  .output-body strong { font-weight: 600; }
+  .output-body table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 13px; }
+  .output-body th { text-align: left; font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); border-bottom: 1px solid var(--border); padding: 6px 8px; }
+  .output-body td { padding: 7px 8px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  .output-body tr:last-child td { border-bottom: none; }
+  .output-body code { font-family: monospace; font-size: 12px; background: var(--bg); padding: 1px 5px; border-radius: 4px; }
+  .output-body ul, .output-body ol { padding-left: 20px; margin: 6px 0; }
+  .output-body li { margin-bottom: 3px; }
+  .output-body blockquote { border-left: 3px solid var(--accent); padding-left: 14px; margin: 12px 0; color: var(--text-muted); }
+
+  .cursor { display: inline-block; width: 2px; height: 15px; background: var(--text); vertical-align: middle; margin-left: 1px; animation: blink 0.8s step-end infinite; }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+
+  /* VERDICT BANNER */
+  .verdict-banner {
+    display: none;
+    padding: 14px 20px;
+    border-radius: var(--radius);
+    margin-bottom: 20px;
+    font-weight: 600;
+    font-size: 15px;
+    border: 1px solid;
+    align-items: center;
+    gap: 10px;
+  }
+  .verdict-banner.visible { display: flex; }
+  .verdict-pursue-agg { background: #EAF3DE; color: #27500A; border-color: #C0DD97; }
+  .verdict-pursue { background: var(--accent-light); color: var(--accent-text); border-color: #9FE1CB; }
+  .verdict-lower { background: var(--warn-light); color: var(--warn); border-color: #FAC775; }
+  .verdict-study { background: #E6F1FB; color: #185FA5; border-color: #B5D4F4; }
+  .verdict-monitor { background: #F1EFE8; color: #5F5E5A; border-color: #D3D1C7; }
+  .verdict-pass { background: var(--danger-light); color: var(--danger); border-color: #F7C1C1; }
+
+  /* FOLLOW-UPS */
+  .followup-section { margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border); }
+  .followup-label { font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-faint); margin-bottom: 10px; }
+  .followup-chips { display: flex; gap: 8px; flex-wrap: wrap; }
+  .followup-chip {
+    font-size: 12px; padding: 6px 14px; border-radius: 20px;
+    border: 1px solid var(--border); cursor: pointer;
+    color: var(--text-muted); background: var(--bg);
+    font-family: inherit; transition: all 0.1s;
+  }
+  .followup-chip:hover { background: var(--text); color: #fff; border-color: var(--text); }
+
+  /* EXPORT */
+  .action-row { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
+  .action-btn {
+    font-size: 12px; padding: 6px 14px; border-radius: var(--radius);
+    border: 1px solid var(--border); cursor: pointer;
+    color: var(--text-muted); background: var(--surface);
+    font-family: inherit; transition: all 0.1s;
+    display: flex; align-items: center; gap: 5px;
+  }
+  .action-btn:hover { border-color: var(--border-strong); color: var(--text); }
+
+  /* EMPTY STATE */
+  .empty-state { text-align: center; padding: 60px 20px; color: var(--text-faint); }
+  .empty-state svg { margin-bottom: 16px; opacity: 0.3; }
+  .empty-title { font-size: 16px; font-weight: 500; color: var(--text-muted); margin-bottom: 6px; }
+  .empty-sub { font-size: 13px; }
+
+  @media (max-width: 768px) {
+    .sidebar { position: relative; width: 100%; min-width: 100%; }
+    .main { margin-left: 0; }
+    .shell { flex-direction: column; }
+    .content { padding: 16px; }
+    .topbar { padding: 12px 16px; }
+  }
+
+  @keyframes spin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
+  .spin { animation: spin 1s linear infinite; }
+</style>
+</head>
+<body>
+
+<div class="shell">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-top">
+      <div class="pub-mark">Pacifica Urban Builders</div>
+      <div class="sidebar-title">SB1123<br>Dev Engine</div>
+      <div class="sidebar-sub">v2.1 — California R1 Analysis</div>
+    </div>
+
+    <div class="api-section">
+      <div class="api-label">Anthropic API Key</div>
+      <div class="api-input-wrap">
+        <input class="api-input" type="password" id="api-key-input" placeholder="sk-ant-..." autocomplete="off" oninput="validateKey()" />
+        <button class="api-toggle" onclick="toggleKeyVis()" title="Show/hide">👁</button>
+      </div>
+      <div class="api-status" id="api-status">Enter your API key to begin</div>
+    </div>
+
+    <div class="sidebar-section" id="history-section" style="display:none;">
+      <div class="sidebar-section-label">Recent analyses</div>
+      <div id="history-list"></div>
+    </div>
+
+    <div class="sidebar-footer">
+      <button class="clear-btn" onclick="clearHistory()">Clear history</button>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <div class="main">
+    <div class="topbar">
+      <div class="topbar-addr" id="topbar-addr">New analysis</div>
+      <span class="topbar-status status-idle" id="topbar-status">Idle</span>
+    </div>
+
+    <div class="content">
+
+      <!-- INPUT FORM -->
+      <div class="form-card">
+        <div class="form-section-label">Property</div>
+        <div class="field-row">
+          <div class="field grow">
+            <label for="addr">Address</label>
+            <input type="text" id="addr" placeholder="1234 N Laurel Ave, West Hollywood, CA 90046" />
+          </div>
+          <div class="field w160">
+            <label for="price">Purchase price ($)</label>
+            <input type="text" id="price" placeholder="1,850,000" />
+          </div>
+          <div class="field w160">
+            <label for="jur">Jurisdiction</label>
+            <select id="jur">
+              <option value="">Auto-detect</option>
+              <option>LA City</option>
+              <option>LA County</option>
+              <option>West Hollywood</option>
+              <option>Culver City</option>
+              <option>Santa Monica</option>
+              <option>Beverly Hills</option>
+              <option>Burbank</option>
+              <option>Glendale</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="divider"></div>
+        <div class="form-section-label">Hard cost inputs ($/SF) — leave blank to use PUB-calibrated placeholders</div>
+        <div class="field-row">
+          <div class="field w160">
+            <label for="hc-main">Main house ($/SF)</label>
+            <input type="text" id="hc-main" placeholder="e.g. 285" />
+          </div>
+          <div class="field w160">
+            <label for="hc-jadu">JADU ($/SF)</label>
+            <input type="text" id="hc-jadu" placeholder="e.g. 310" />
+          </div>
+          <div class="field w160">
+            <label for="hc-garage">Garage / parking ($/SF)</label>
+            <input type="text" id="hc-garage" placeholder="e.g. 120" />
+          </div>
+          <div class="field w160">
+            <label for="target-return">Target return (%)</label>
+            <input type="text" id="target-return" placeholder="e.g. 20" />
+          </div>
+        </div>
+
+        <div class="divider"></div>
+        <div class="form-section-label">Analysis scope</div>
+        <div class="scope-row" id="scope-row">
+          <button class="scope-chip on" data-val="site">1 — Site snapshot</button>
+          <button class="scope-chip on" data-val="eligibility">2 — SB1123 eligibility</button>
+          <button class="scope-chip on" data-val="program">3 — Program design</button>
+          <button class="scope-chip on" data-val="budget">4 — Project budget</button>
+          <button class="scope-chip on" data-val="underwriting">5 — Underwriting</button>
+          <button class="scope-chip on" data-val="comps">6 — Market comps</button>
+        </div>
+
+        <div class="divider"></div>
+        <div class="form-section-label">Additional context (optional)</div>
+        <textarea id="context" placeholder="Seller motivation, off-market source, known site constraints, target close date, specific concerns, prior analyses..."></textarea>
+
+        <div class="run-row">
+          <button class="run-btn" id="run-btn" onclick="runAnalysis()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+            Run full analysis
+          </button>
+          <button class="stop-btn" id="stop-btn" onclick="stopAnalysis()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="4" y="4" width="16" height="16" rx="2"/></svg>
+            Stop
+          </button>
+          <span class="err-msg" id="err-msg"></span>
+        </div>
+      </div>
+
+      <!-- STEP TRACKER -->
+      <div class="step-tracker" id="step-tracker">
+        <div class="tracker-step" id="ts-site"><span class="dot"></span>Site snapshot</div>
+        <div class="tracker-step" id="ts-eligibility"><span class="dot"></span>Eligibility</div>
+        <div class="tracker-step" id="ts-program"><span class="dot"></span>Program</div>
+        <div class="tracker-step" id="ts-budget"><span class="dot"></span>Budget</div>
+        <div class="tracker-step" id="ts-underwriting"><span class="dot"></span>Underwriting</div>
+        <div class="tracker-step" id="ts-comps"><span class="dot"></span>Comps</div>
+      </div>
+
+      <!-- VERDICT BANNER -->
+      <div class="verdict-banner" id="verdict-banner"></div>
+
+      <!-- ACTION ROW -->
+      <div class="action-row" id="action-row" style="display:none;">
+        <button class="action-btn" onclick="exportMarkdown()">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Export as Markdown
+        </button>
+        <button class="action-btn" onclick="copyToClipboard()">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+          Copy text
+        </button>
+        <button class="action-btn" onclick="newAnalysis()">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          New analysis
+        </button>
+      </div>
+
+      <!-- OUTPUT -->
+      <div class="output-card" id="output-card">
+        <div class="output-body" id="output-body"></div>
+        <div class="followup-section" id="followup-section" style="display:none;">
+          <div class="followup-label">Drill deeper</div>
+          <div class="followup-chips" id="followup-chips"></div>
+        </div>
+      </div>
+
+      <!-- EMPTY STATE -->
+      <div class="empty-state" id="empty-state">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+        <div class="empty-title">Enter an address to begin</div>
+        <div class="empty-sub">Full six-step SB1123 analysis — site, eligibility, program, budget, underwriting, comps</div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+const SYSTEM_PROMPT = `You are the PUB SB1123 Dev Engine v2.1 — a specialized development analysis tool built for Pacifica Urban Builders (PUB), a licensed California general contractor and urban infill developer with 3,700+ homes and $2B+ in value delivered. You operate as a full development partner, not a passive assistant.
+
+PUB COMPANY CONTEXT
+- Entity: Pacifica Urban Builders LLC (equity/investor) and Pacifica Urban Builders Construction, Inc. (licensed GC, B-license)
+- Track record: 3,700+ homes, 1,500+ scattered sites, $2B+ in value delivered
+- Primary submarket: Los Angeles — West Hollywood and surrounding zip codes (90046, 90069, 90038, 90028, 90048, 90036)
+- Utility provider for WeHo-area projects: SCE (NEM 3.0 applies to solar export; solar required per Title 24)
+- Standard product: 3-story vertical townhome — 2-car garage on ground floor, living on 2nd/3rd floors, 1,750 SF net habitable avg per unit (SB1123 cap), JADU 150 SF attached internal
+- Hard cost inputs provided by PUB on a per-project basis. Apply directly when provided. Use PUB-calibrated placeholders when not provided and flag them.
+- Target return threshold: flag when not provided; default to 20% gross margin for max land price calculation
+
+OPERATING PRINCIPLES (non-negotiable)
+- Operate through six lenses simultaneously: Developer, Builder, Site Planner, Designer, Investor, Homebuyer Advocate.
+- Think independently. If the deal does not pencil, say so and calculate the price at which it would.
+- Do not deflect. Produce the deliverable. Do not ask the human to assemble work you can assemble.
+- Distinguish facts, assumptions, judgment calls, and items requiring professional verification. Label each clearly.
+- Ask focused questions only when they materially improve the output. One or two questions maximum.
+
+---
+
+STEP 1 — PROPERTY SEARCH & SITE SNAPSHOT
+Execute the following data source searches IN ORDER before writing any conclusions. Do not skip sources. Do not estimate lot dimensions when primary sources are available.
+
+REQUIRED DATA SOURCE SEARCHES (run all of these using web search):
+
+1. LA County Assessor Portal — search "LA County Assessor property search [address]" or go to assessor.lacounty.gov. Extract: APN, lot size (SF), lot dimensions (width x depth), year built, building SF, land use code, assessed value. This is the PRIMARY source for lot dimensions.
+
+2. ZIMAS — search "ZIMAS [address] Los Angeles" or zimas.lacity.org. Extract: zoning designation, lot dimensions, case history, overlays, hillside designation, specific plan, coastal zone, historic designation, and any active planning cases. This is the PRIMARY source for zoning.
+
+3. LA County GIS / Parcel Viewer — search "LA County GIS parcel [APN]" or lavote.gov/maps. Use to cross-check lot dimensions and confirm interior vs. corner lot status.
+
+4. NavigateLA — search "NavigateLA [address]" or navigate.lacity.org. Extract: zoning, general plan land use, overlay districts, specific plans, flood zone, and any development constraints.
+
+5. General web search — search "[address] lot size zoning" and "[address] [APN] assessor" to find any additional public records, permit history, or prior listings that confirm dimensions.
+
+REQUIRED OUTPUT FROM STEP 1:
+Report each data point with its source. Use this format:
+- APN: [value] — Source: [LA County Assessor / ZIMAS / other]
+- Lot size (SF): [value] — Source: [source]
+- Lot width (ft): [value] — Source: [source] — Confidence: [High/Moderate/Low]
+- Lot depth (ft): [value] — Source: [source] — Confidence: [High/Moderate/Low]
+- Lot shape: [regular/irregular] — Source: [source]
+- Interior or corner lot: [value] — Source: [source]
+- Street frontage: [value] — Source: [source]
+- Zoning designation: [value] — Source: [ZIMAS / other]
+- General Plan land use: [value] — Source: [source]
+- Existing structure: type, SF, year built, condition — Source: [source]
+- Overlays / constraints: [hillside / specific plan / historic / coastal / flood / none] — Source: [ZIMAS]
+- Current use: [value]
+
+DIMENSION CONFIDENCE RULE: If lot width and depth are confirmed by LA County Assessor or ZIMAS, label as HIGH confidence and use these exact figures in Step 3 geometry. If only lot area (SF) is available but not dimensions, derive estimated dimensions from the SF and flag as [ASSUMPTION — REQUIRES SURVEY CONFIRMATION]. Never use estimated dimensions when primary source dimensions are available.
+
+Flag what a site visit or licensed survey would add beyond what online sources confirmed.
+---
+
+STEP 2 — SB1123 ELIGIBILITY & REGULATORY ANALYSIS
+STEP 2 — SB1123 ELIGIBILITY & REGULATORY ANALYSIS
+Use the zoning confirmed in Step 1 (from ZIMAS and NavigateLA) as the starting point. Do not rely solely on memory or general knowledge — verify current zoning from the sources searched in Step 1. If Step 1 searches did not return a clear zoning designation, run an additional web search now: search "ZIMAS [address] zoning" and "[address] Los Angeles zoning designation".
+
+ZONING VERIFICATION REQUIRED:
+- State the confirmed zoning designation and its source (ZIMAS / NavigateLA / other)
+- Confirm whether the base zone is R1 or equivalent single-family residential
+- Note any overlays, specific plans, or designations that could affect SB1123 eligibility
+- If zoning could not be confirmed from primary sources, flag explicitly as [FLAG: zoning not confirmed — verify with ZIMAS before proceeding]
+
+ELIGIBILITY ANALYSIS (based on confirmed zoning):
+Determine whether the property qualifies under SB1123 (California Government Code §65852.28 et seq.). Analyze: R1 zoning eligibility, applicable jurisdiction, current SB1123 implementation status (adopted, pending, or unclear), ADU and JADU rules, setbacks (front/rear/side), height limits, lot coverage, FAR or floor-area caps, parking requirements, fire access, hillside and overlay constraints, and any known approval-path issues. Distinguish verified facts from working assumptions. Flag all items requiring professional confirmation.
+
+VACANCY ASSUMPTION (non-negotiable PUB operating assumption):
+PUB assumes all sites are vacant for analysis purposes, regardless of current occupancy. Do NOT analyze, flag, research, or raise any of the following: tenant occupancy requirements, vacancy requirements, prior tenancy history, owner-occupancy conditions, or any eligibility restriction tied to whether a site is currently occupied or was recently occupied. These factors are outside PUB's acquisition scope. Treat every site as unoccupied and proceed directly to zoning, geometry, and development feasibility.
+
+Key SB1123 parameters to apply:
+- Projects must result in at least 66% of maximum allowable residential density or 20 dwelling units per acre (1 unit per 2,178 SF of lot area), whichever is greater
+- New dwelling units cannot exceed an average of 1,750 SF net habitable square feet (net habitable = finished heated area excluding garages, carports, cellars, unfinished attics/basements)
+- The 1,750 SF cap is an average across all units — some can exceed if others are below, as long as the average holds
+- JADUs do not count against the 10-unit SB1123 cap and their SF is generally excluded from the average calculation (flag for attorney confirmation)
+- Minimum lot size for newly created lots: 1,200 SF (single-family zoned)
+
+VACANCY ASSUMPTION (non-negotiable PUB operating assumption):
+PUB assumes all sites are vacant for analysis purposes, regardless of current occupancy. Do NOT analyze, flag, research, or raise any of the following: tenant occupancy requirements, vacancy requirements, prior tenancy history, owner-occupancy conditions, or any eligibility restriction tied to whether a site is currently occupied or was recently occupied. These factors are outside PUB's acquisition scope. Treat every site as unoccupied and proceed directly to zoning, geometry, and development feasibility.
+
+Key SB1123 parameters to apply:
+- Projects must result in at least 66% of maximum allowable residential density or 20 dwelling units per acre (1 unit per 2,178 SF of lot area), whichever is greater
+- New dwelling units cannot exceed an average of 1,750 SF net habitable square feet (net habitable = finished heated area excluding garages, carports, cellars, unfinished attics/basements)
+- The 1,750 SF cap is an average across all units — some can exceed if others are below, as long as the average holds
+- JADUs do not count against the 10-unit SB1123 cap and their SF is generally excluded from the average calculation (flag for attorney confirmation)
+- Minimum lot size for newly created lots: 1,200 SF (single-family zoned)
+
+---
+
+STEP 3 — DEVELOPMENT PROGRAM DESIGN
+Apply the correct geometry protocol based on lot type, then produce four options. Show all math step by step.
+
+GEOMETRY PROTOCOL — INTERIOR LOTS UNDER 10,000 SF WITH WIDTH 60 FT OR LESS:
+Apply this exact 4-step protocol. Do not skip steps. Do not estimate unit counts without completing all four steps. Show every calculation explicitly.
+
+ORIENTATION CRITICAL — READ BEFORE CALCULATING:
+PUB's standard SB1123 townhome product is oriented PERPENDICULAR to the street. The units do NOT face the street — they face the driveway on the right side yard. This means:
+
+- LOT WIDTH (the narrow dimension, e.g. 50 ft) runs LEFT to RIGHT across the lot. This dimension, after subtracting front and rear setbacks, becomes the TOTAL BUILDING AREA WIDTH — the total length available for ALL units stacked side by side (front-to-back of lot = side-by-side of units).
+- LOT DEPTH (the long dimension, e.g. 170 ft) runs FRONT to REAR of the lot. After subtracting the left side yard setback and the driveway strip (right side), this dimension becomes each unit's DEPTH — the dimension from the left side yard across to the driveway.
+- UNIT WIDTH = each unit's share of the Total Building Area Width (lot width minus front setback minus rear setback), divided by unit count. Minimum 25 ft per unit.
+- UNIT DEPTH = lot depth minus left side yard setback minus driveway strip (22 ft) plus 6 ft cantilever over driveway. This is the same for every unit.
+- UNITS ARE STACKED ALONG THE LOT WIDTH AXIS (front-to-back of lot), not along the lot depth axis.
+- THE DRIVEWAY runs along the right side, parallel to the lot depth axis, the full length of the lot.
+- THE 6 FT CANTILEVER projects from each unit rightward over the driveway, adding depth to each unit on the 2nd and 3rd floors only.
+
+STANDARD LOT CONFIGURATION (hardcoded):
+- Street frontage: FRONT of lot
+- Rear yard: BACK of lot
+- Driveway: RIGHT side yard, running the full lot length, 1 ft in from right property line, 21 ft wide
+- Units: positioned from the LEFT side yard setback, stacked along the lot width axis (front-to-back of lot)
+- Each unit faces the driveway (right)
+- Cantilever: projects 6 ft rightward over driveway on 2nd and 3rd floors only
+
+---
+
+STEP 1 — DRIVEWAY STRIP (RIGHT SIDE):
+Driveway width = 21 ft, positioned 1 ft in from the right property line.
+Total right-side deduction = 22 ft (21 ft driveway + 1 ft offset).
+This strip is dedicated to vehicle access only. NOT part of the buildable envelope.
+
+STEP 2 — UNIT DEPTH (2nd and 3rd Floors):
+Unit depth is derived from the LOT DEPTH axis (the long dimension), not the lot width.
+  Building depth (left-to-right across lot) = lot depth − left side yard setback − 22 ft (driveway strip)
+  Upper floor unit depth = building depth + 6 ft cantilever over driveway
+  The cantilever does not extend beyond the lot line.
+  Target per unit: 875 SF per floor × 2 floors = 1,750 SF net habitable.
+  Show: lot depth − left side yard setback − 22 ft + 6 ft = upper floor unit depth.
+
+STEP 3 — UNIT WIDTH AND UNIT COUNT:
+Unit width is derived from the LOT WIDTH axis (the short dimension, front-to-back of lot).
+  Total Building Area Width = lot width − front setback − rear setback
+  This is the total length available for all units stacked side by side.
+  Required unit width = 875 SF ÷ upper floor unit depth (from Step 2)
+  Unit count = Total Building Area Width ÷ required unit width (round DOWN to whole units)
+  HARD RULE: No unit may be narrower than 25 ft. If required unit width is under 25 ft, set unit width = 25 ft and recalculate: unit count = Total Building Area Width ÷ 25 ft (round down).
+  Show every step. State final unit count and final unit width explicitly.
+
+STEP 4 — GROUND FLOOR CONFIRMATION:
+  Ground floor unit depth = lot depth − left side yard setback − 22 ft (NO cantilever — cantilever is upper floors only)
+  Ground floor unit width = same as Step 3
+  Ground floor footprint per unit = ground floor unit depth × unit width
+  Confirm the ground floor fits: (a) 2-car garage (~20 ft depth min), (b) entry vestibule (~50 SF), (c) staircase (~80 SF)
+  A 2-car garage requires minimum ~20 ft unit depth at ground floor. If ground floor unit depth is under 20 ft, flag as infeasible.
+  Show ground floor footprint dimensions separately from upper floors.
+
+REQUIRED GEOMETRY OUTPUT TABLE (produce this table for every analysis):
+| Parameter | Value | Calculation | Notes |
+|---|---|---|---|
+| Lot width (front-to-rear of lot) | X ft | — | [source] |
+| Lot depth (left-to-right across lot) | X ft | — | [source] |
+| Front setback | X ft | — | |
+| Rear setback | X ft | — | |
+| Left side yard setback | X ft | — | |
+| Driveway width | 21 ft | PUB standard | Right side |
+| Right property line offset | 1 ft | PUB standard | |
+| Total right-side deduction | 22 ft | 21 + 1 | |
+| Total Building Area Width (all units) | X ft | Lot width − front setback − rear setback | Units stacked along this axis |
+| Building depth (left side to driveway) | X ft | Lot depth − left setback − 22 ft | |
+| Upper floor unit depth (with cantilever) | X ft | Building depth + 6 ft | 2nd & 3rd floors only |
+| Required unit width (875 SF ÷ unit depth) | X ft | 875 ÷ upper floor unit depth | |
+| Effective unit width (min 25 ft) | X ft | Max(required width, 25 ft) | |
+| Unit count | X | Total Building Area Width ÷ effective unit width, round down | |
+| Net habitable SF per unit | X SF | Effective unit width × upper floor unit depth × 2 floors | |
+| Ground floor unit depth (no cantilever) | X ft | Building depth (no cantilever) | |
+| Ground floor footprint per unit | X SF | Unit width × ground floor unit depth | |
+| Ground floor program check | PASS/FAIL | 2-car garage + vestibule + stair fit within unit depth | |
+
+WORKED EXAMPLE (50 ft wide × 170 ft deep lot, R1-1 setbacks: front 15 ft, rear 15 ft, left side 5 ft):
+- Total Building Area Width = 50 − 15 − 15 = 20 ft  ← units stacked along this 20 ft axis
+- Building depth = 170 − 5 − 22 = 143 ft
+- Upper floor unit depth = 143 + 6 = 149 ft
+- Required unit width = 875 ÷ 149 = 5.9 ft → triggers 25 ft minimum
+- Unit count = 20 ÷ 25 = 0.8 → rounds down to 0 units (lot too narrow for even 1 unit at 25 ft minimum)
+- In this case: flag as [INSUFFICIENT WIDTH — lot cannot support even 1 unit at 25 ft minimum width with these setbacks. Verify setbacks and dimensions.]
+NOTE: This example shows why accurate lot dimensions from primary sources (LA County Assessor, ZIMAS) are critical before geometry is run.
+
+For corner lots, lots over 10,000 SF, or lots over 60 ft wide: use disciplined conceptual math. State clearly that the standard 4-step protocol does not apply.
+
+FOUR OPTIONS TO PRODUCE:
+Option A — Maximum Yield: Highest unit count the geometry supports. Show what it compromises.
+Option B — Highest Livability: Fewer or better-configured homes with stronger outdoor space, privacy, buyer appeal.
+Option C — Highest Projected Return: Configuration with strongest projected net profit after cost and marketability.
+Option D — Recommended Balance: Best risk-adjusted configuration with plain-English rationale.
+
+For each option state: unit count, unit sizes (SF net habitable), stories, beds/baths, JADU count and SF, garage configuration, private outdoor space per unit, shared open space, and the full geometry derivation.
+
+ADU/JADU INTEGRATION TEST: For each home ask — Is a JADU permitted? Where does it fit without damaging the primary home? Does it improve buyer value through rental income? Does it compromise parking, privacy, light, storage, or outdoor space? Only recommend where value-accretive.
+
+---
+
+STEP 4 — COMPLETE PROJECT BUDGET
+Build a full itemized development budget using PUB's pro forma structure. Show all math. Apply hard cost inputs provided by PUB directly. When not provided, use PUB-calibrated placeholders and flag each one.
+
+PROGRAM SUMMARY (show first):
+- Lot size (SF) | Unit count | JADUs | Avg townhome SF | JADU SF | Garage SF/unit | Stories | Total project gross SF | Total sellable SF
+
+ACQUISITION:
+- Land purchase price (as provided)
+- Closing costs (1.5% of purchase price)
+- Buy-side broker commission (2.5% of purchase price — include if applicable, flag if unknown)
+- TOTAL ACQUISITION
+
+ENTITLEMENT, DESIGN & PERMITS (itemized):
+- Survey / Boundary / ALTA: $8,500 [ASSUMPTION]
+- Soils / Geotech Report: $9,500 [ASSUMPTION]
+- Phase I ESA: $3,500 [ASSUMPTION]
+- Architecture — Full Set (Schematic/DD/CD): $85,000 base, scale with unit count [ASSUMPTION]
+- Structural Engineering: $28,000 [ASSUMPTION]
+- MEP Engineering (Mech/Elec/Plumbing): $22,000 [ASSUMPTION]
+- Civil / Grading Engineering: $18,000 [ASSUMPTION]
+- Title 24 / Energy Compliance: $5,500 [ASSUMPTION]
+- Land Use / Entitlement Consulting: $15,000 [ASSUMPTION]
+- Parcel Map / Subdivision Filing (SHRA): $12,000 [ASSUMPTION]
+- LA City Planning Fees (SHRA filing): $8,500 [ASSUMPTION]
+- LA DBS Plan Check Fee (~1.5% of construction value): calculate [ASSUMPTION]
+- Building Permit Fee (LA City): $42,000 base, scale with unit count [ASSUMPTION]
+- School Fees (LA Unified ~$4.20/SF residential): calculate based on buildable SF [ASSUMPTION]
+- Park / Quimby Fees (~$2,500/unit): calculate [ASSUMPTION]
+- LADBS Inspection Fees: $8,000 [ASSUMPTION]
+- Utility Connection Fees (SCE): $22,000 [ASSUMPTION]
+- Sewer Connection / Sanitation: $18,000 [ASSUMPTION]
+- Fire & Life Safety Plan Review: $4,500 [ASSUMPTION]
+- TOTAL ENTITLEMENT & PERMITS
+
+HARD COSTS — CONSTRUCTION:
+- Townhome hard cost: ($/SF provided by PUB) × (avg unit SF × unit count). If not provided use $250/SF [ASSUMPTION]
+- JADU hard cost: ($/SF provided by PUB) × (JADU SF × JADU count). If not provided use $150/SF [ASSUMPTION]
+- Garage/parking hard cost: ($/SF provided by PUB) × (garage SF × unit count). If not provided use $100/SF [ASSUMPTION]
+- Site Demo / Grading / Export: $45,000 base [ASSUMPTION]
+- Site Work & Utilities (on-site — trenching, laterals, flatwork, landscaping): $95,000 base [ASSUMPTION]
+- Contingency: 8% of hard cost subtotal (PUB standard)
+- HARD COST SUBTOTAL (before contingency)
+- TOTAL HARD COST (including contingency)
+
+PROJECT FEES:
+- Project Management / Owner's Rep: $150,000 [ASSUMPTION]
+- PUB GC Fee: 16% of hard cost subtotal (PUB Construction Inc. standard)
+- Insurance (Builder's Risk + GL): $35,000 [ASSUMPTION]
+- TOTAL PROJECT FEES
+
+SOFT COSTS:
+- Legal — Entity, Contracts, HOA Docs: $18,000 [ASSUMPTION]
+- Accounting / Tax: $8,000 [ASSUMPTION]
+- Marketing, Staging & Photography: $18,000 [ASSUMPTION]
+- HOA Formation / CC&Rs: $8,500 [ASSUMPTION]
+- TOTAL SOFT COSTS
+
+FINANCING & CARRY:
+- Total project cost pre-financing basis (sum of all above)
+- Equity contribution (30% of pre-financing cost)
+- Construction loan amount (70% of pre-financing cost)
+- Loan origination fee (1% of loan amount)
+- Construction interest: loan amount × 8.5% annual rate × (construction months/12) × 60% avg draw factor. Default construction period = 14 months [ASSUMPTION]
+- Carry interest — hold period: loan amount × 8.5% × (hold months/12). Default hold period post-CO = 4 months [ASSUMPTION]
+- TOTAL FINANCING COST
+
+SHOW TOTALS TABLE:
+| Category | Total ($) | Per Unit ($) | % of TDC |
+With rows for: Acquisition | Entitlement & Permits | Hard Costs | Project Fees | Soft Costs | Financing | TOTAL PROJECT COST (ALL-IN)
+
+---
+
+STEP 5 — COMPLETE UNDERWRITING MODEL
+Produce a full pro forma using the PUB standard model structure. Show for each option (A/B/C/D) and for recommended option in detail.
+
+REVENUE & DISPOSITION:
+- Total sellable SF (townhome SF + JADU SF × unit count)
+- Sale price/SF — use comp-supported value from Step 6, or PUB input, or flag as [ASSUMPTION]
+- Gross Revenue = sellable SF × price/SF (show per unit and total)
+- Broker commission: 6% of gross revenue (LA listing broker standard)
+- Seller closing costs: 0.8% of gross revenue (escrow, title, transfer tax)
+- Measure ULA Tax: flag if any unit sale exceeds $5M (4% ULA applies)
+- NET REVENUE (after all selling costs)
+
+RETURN SUMMARY:
+- Net Profit = Net Revenue − Total Project Cost (All-In)
+- Net Profit per Unit
+- Gross Margin (%) = Net Profit / Gross Revenue
+- Return on Cost (ROC) = Net Profit / Total Project Cost
+- Equity Multiple (MOIC) = Net Revenue / Equity Contribution
+- Total Cost / SF (all-in)
+- Total Cost / Unit
+- Land Cost / Unit
+- Hard Cost / Unit
+- Loan-to-Cost (LTC)
+
+MAXIMUM SUPPORTABLE LAND PRICE:
+Calculate the maximum land price at PUB's target return threshold (or 20% gross margin if not provided). Show the derivation clearly.
+
+SENSITIVITY TABLE:
+Show Net Profit ($) at varying Sale Price/SF and Hard Cost variance:
+- Sale Price/SF columns: −$50, −$25, Base, +$25, +$50, +$100 from base
+- Hard Cost rows: −15%, −10%, −5%, Base, +5%, +10%, +15%, +20%
+Format as a table. Green = profit above target. Red = profit below target or loss.
+
+DOWNSIDE / BASE / UPSIDE SCENARIOS:
+Define three scenarios with different sale price and hard cost assumptions. Show key metrics for each.
+
+Flag the top 3 assumptions that most strongly drive the return.
+
+---
+
+STEP 6 — MARKET COMP ANALYSIS & END-VALUE SUPPORT
+Run a comparable sales analysis using web search. PUB's product is a 3-story vertical townhome with 2-car garage on ground floor and living area on 2nd/3rd floors — fee-simple ownership. Apply the strict comp hierarchy below.
+
+COMP HIERARCHY (apply in order — do not skip tiers without explanation):
+
+TIER 1 — PRIMARY (Small Lot Subdivisions):
+Small Lot Subdivisions (SLS) in LA: fee-simple, infill, detached or attached, no HOA common area assessments. Search order: (1) same zip code, (2) 0.5-mile radius, (3) 1-mile radius, (4) broader submarket as last resort. Do not exceed 2-mile radius without flagging explicitly. Prioritize sales within last 12 months. Flag any comp older than 12 months. Do not use comps older than 5 years. Always note fee-simple ownership status.
+
+TIER 2 — PRIMARY (Qualifying Townhome Condos):
+Must be: 2–3 story, side-by-side configuration, garage on ground floor, living area on 2nd and 3rd floors. This vertical configuration is directly comparable to PUB product. Always note condo ownership structure. Use to calibrate condo discount vs. fee-simple SLS premium.
+
+SECONDARY (use only if Tier 1 and Tier 2 insufficient):
+Remodeled SFR or infill product with comparable buyer profile. Explain product difference and any adjustment applied. Context only — not primary end-value support.
+
+DISQUALIFIED — DO NOT USE AS PRIMARY COMPS:
+Horizontal flat-style multifamily | Stacked flats | Units without ground-floor garage | Projects with significant HOA common area assessments | Sales older than 5 years | Properties beyond 2-mile radius (without explicit disclosure)
+
+COMP TABLE FORMAT (for each comp):
+| Address | Sale Date | Price | SF | $/SF | Beds/Baths | Ownership | Garage | Outdoor Space | Tier | Relevance Note |
+
+ACTIVE & PENDING COMPETITION:
+Search for active listings, pending sales, and new construction pipeline in the same submarket. Note days on market and any price reductions.
+
+END-VALUE SCENARIOS (per unit, for recommended program):
+| Scenario | $/SF | Unit Value | Basis |
+Downside | Base | Upside — with plain-English explanation of why each is plausible.
+
+VALUE DRIVER NARRATIVE:
+Do not merely state sale prices. Explain why buyers should pay the projected price. Identify specific attributes that support value and attributes that could cause a discount. Note ownership structure premium (fee-simple vs. condo) explicitly.
+
+---
+
+FINAL RECOMMENDATION
+Issue a recommendation using exactly one of these six categories:
+**RECOMMENDATION: Pursue Aggressively** — Strong opportunity, attractive basis, manageable risk. Move quickly.
+**RECOMMENDATION: Pursue** — Promising opportunity. Advance diligence and negotiation.
+**RECOMMENDATION: Pursue Only at Lower Price** — Program works but current basis does not justify risk. State maximum supportable price.
+**RECOMMENDATION: Study Further** — Specific unknown materially affects the answer. State what must be resolved.
+**RECOMMENDATION: Monitor** — Not actionable now. State what would change it.
+**RECOMMENDATION: Pass** — Risk-adjusted economics do not justify further effort. Explain clearly.
+
+Also provide: Top 3–5 value drivers | Potential deal killers | Confidence levels (High / Moderate / Low / Requires Verification) | Next steps
+
+---
+
+FORMATTING RULES
+- Use ## for main step headers, ### for subsections
+- Use markdown tables for budget, comps, sensitivity, return summary
+- Show all math inline — never skip to a conclusion without derivation
+- Label every assumption: [ASSUMPTION] or [FLAG: needs verification]
+- Be specific with numbers — point estimates, not ranges, where a point estimate serves better
+- This is a working development document, not an executive summary
+- Version footer on every analysis: "PUB SB1123 Dev Engine v2.1 | Manual v2.1 | [date]"
+
+COMPLETION RULE (non-negotiable): You MUST complete ALL six steps in a single response. Do not stop after Step 4 or Step 5. Do not truncate the underwriting model. Do not omit the comp analysis. If you are running long, abbreviate prose but always complete the sensitivity table, the return summary, and the full comp table. Step 5 (underwriting) and Step 6 (comps) must always appear in the output — a response without both is incomplete and unacceptable. If the analysis is very long, compress earlier steps slightly to ensure Steps 5 and 6 are always fully produced.`;
+
+let currentReader = null;
+let currentText = '';
+let currentAddr = '';
+
+// KEY MANAGEMENT
+function validateKey() {
+  const key = document.getElementById('api-key-input').value.trim();
+  const status = document.getElementById('api-status');
+  if (!key) { status.textContent = 'Enter your API key to begin'; status.className = 'api-status'; return; }
+  if (key.startsWith('sk-ant-')) {
+    status.textContent = 'Key looks valid ✓'; status.className = 'api-status ok';
+    localStorage.setItem('pub_api_key', key);
+  } else {
+    status.textContent = 'Should start with sk-ant-'; status.className = 'api-status';
+  }
+}
+
+function toggleKeyVis() {
+  const inp = document.getElementById('api-key-input');
+  inp.type = inp.type === 'password' ? 'text' : 'password';
+}
+
+// SCOPE TOGGLES
+document.querySelectorAll('.scope-chip').forEach(btn => {
+  btn.addEventListener('click', () => btn.classList.toggle('on'));
+});
+
+function getScope() {
+  return [...document.querySelectorAll('.scope-chip.on')].map(b => b.dataset.val);
+}
+
+// STEP TRACKER
+var STEPS = ['site','eligibility','program','budget','underwriting','comps'];
+var STEP_KEYWORDS = {
+  site: ['step 1','site snapshot','property search','lot area','apn','existing structure'],
+  eligibility: ['step 2','eligibility','sb1123','regulatory','adu','setback','r1'],
+  program: ['step 3','program design','development program','option a','option b','option c','option d'],
+  budget: ['step 4','project budget','development budget','hard cost','acquisition'],
+  underwriting: ['step 5','underwriting','pro forma','gross revenue','net profit','return on cost'],
+  comps: ['step 6','market comp','comparable','comp analysis','price/sf']
+};
+
+let activeStep = null;
+
+function setStep(step, status) {
+  const el = document.getElementById('ts-' + step);
+  if (!el) return;
+  el.className = 'tracker-step' + (status ? ' ' + status : '');
+}
+
+function detectStep(text) {
+  const lower = text.slice(-300).toLowerCase();
+  for (const [step, keywords] of Object.entries(STEP_KEYWORDS)) {
+    if (keywords.some(k => lower.includes(k))) return step;
+  }
+  return null;
+}
+
+// HISTORY
+let history = [];
+function loadHistory() {
+  try { history = JSON.parse(localStorage.getItem('pub_history') || '[]'); } catch(e) { history = []; }
+  renderHistory();
+}
+function saveToHistory(entry) {
+  history.unshift(entry);
+  if (history.length > 15) history = history.slice(0, 15);
+  try { localStorage.setItem('pub_history', JSON.stringify(history)); } catch(e) {}
+  renderHistory();
+}
+function clearHistory() {
+  history = [];
+  try { localStorage.removeItem('pub_history'); } catch(e) {}
+  renderHistory();
+}
+
+function verdictStyle(v) {
+  if (!v) return { bg:'#eee', color:'#888' };
+  if (v.includes('Aggressively')) return { bg:'#EAF3DE', color:'#27500A' };
+  if (v.includes('Lower')) return { bg:'#FAEEDA', color:'#854F0B' };
+  if (v.includes('Pursue')) return { bg:'#E1F5EE', color:'#0F6E56' };
+  if (v.includes('Study')) return { bg:'#E6F1FB', color:'#185FA5' };
+  if (v.includes('Monitor')) return { bg:'#F1EFE8', color:'#5F5E5A' };
+  if (v.includes('Pass')) return { bg:'#FCEBEB', color:'#A32D2D' };
+  return { bg:'#eee', color:'#888' };
+}
+
+function renderHistory() {
+  const sec = document.getElementById('history-section');
+  const list = document.getElementById('history-list');
+  if (!history.length) { sec.style.display = 'none'; return; }
+  sec.style.display = 'block';
+  list.innerHTML = history.map((h, i) => {
+    const vs = verdictStyle(h.verdict);
+    const dotColor = vs.color;
+    return `<div class="history-item" onclick="loadHistoryEntry(${i})">
+      <div class="history-addr">${h.address}</div>
+      <div class="history-meta">
+        <span class="verdict-dot" style="background:${dotColor};"></span>
+        <span>${h.verdict || 'No verdict'}</span>
+        <span style="margin-left:auto;">${h.date}</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function loadHistoryEntry(i) {
+  const h = history[i];
+  document.getElementById('addr').value = h.address;
+  if (h.price) document.getElementById('price').value = h.price;
+  document.getElementById('addr').focus();
+}
+
+// MAIN ANALYSIS
+async function runAnalysis() {
+  const apiKey = document.getElementById('api-key-input').value.trim();
+  const addr = document.getElementById('addr').value.trim();
+  const err = document.getElementById('err-msg');
+
+  if (!apiKey || !apiKey.startsWith('sk-ant-')) {
+    err.textContent = 'Please enter a valid Anthropic API key in the sidebar.';
+    err.style.display = 'block'; return;
+  }
+  if (!addr) {
+    err.textContent = 'Please enter a property address.';
+    err.style.display = 'block'; return;
+  }
+  err.style.display = 'none';
+
+  const price = document.getElementById('price').value.trim();
+  const jur = document.getElementById('jur').value;
+  const hcMain = document.getElementById('hc-main').value.trim();
+  const hcJadu = document.getElementById('hc-jadu').value.trim();
+  const hcGarage = document.getElementById('hc-garage').value.trim();
+  const targetReturn = document.getElementById('target-return').value.trim();
+  const ctx = document.getElementById('context').value.trim();
+  const scope = getScope();
+
+  // Build user message
+  let userMsg = `Property address: ${addr}`;
+  if (price) userMsg += `\nPurchase price: $${price}`;
+  if (jur) userMsg += `\nJurisdiction: ${jur}`;
+  if (hcMain) userMsg += `\nHard cost — main house: $${hcMain}/SF`;
+  if (hcJadu) userMsg += `\nHard cost — JADU: $${hcJadu}/SF`;
+  if (hcGarage) userMsg += `\nHard cost — garage/parking: $${hcGarage}/SF`;
+  if (targetReturn) userMsg += `\nTarget return threshold: ${targetReturn}%`;
+  if (ctx) userMsg += `\nAdditional context: ${ctx}`;
+  userMsg += `\n\n${scope.length === STEPS.length ? 'Execute all six steps of the full analysis.' : 'Execute only these steps: ' + scope.join(', ') + '. Skip the others.'}`;
+
+  // UI state: running
+  currentAddr = addr;
+  currentText = '';
+  activeStep = null;
+
+  document.getElementById('topbar-addr').textContent = addr;
+  setStatus('running', 'Running…');
+  document.getElementById('run-btn').disabled = true;
+  document.getElementById('run-btn').innerHTML = `<svg class="spin" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 12a9 9 0 11-6.219-8.56"/></svg> Analyzing…`;
+  document.getElementById('stop-btn').style.display = 'flex';
+  document.getElementById('empty-state').style.display = 'none';
+  document.getElementById('output-card').classList.add('visible');
+  document.getElementById('output-body').innerHTML = '<span class="cursor"></span>';
+  document.getElementById('verdict-banner').className = 'verdict-banner';
+  document.getElementById('verdict-banner').innerHTML = '';
+  document.getElementById('action-row').style.display = 'none';
+  document.getElementById('followup-section').style.display = 'none';
+
+  const tracker = document.getElementById('step-tracker');
+  tracker.classList.add('visible');
+  STEPS.forEach(s => setStep(s, ''));
+
+  try {
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-5',
+        max_tokens: 16000,
+        stream: true,
+        system: SYSTEM_PROMPT,
+        tools: [{ type: 'web_search_20250305', name: 'web_search' }],
+        messages: [{ role: 'user', content: userMsg }]
+      })
+    });
+
+    if (!resp.ok) {
+      const errData = await resp.json().catch(() => ({}));
+      throw new Error(errData.error?.message || `HTTP ${resp.status}`);
+    }
+
+    const reader = resp.body.getReader();
+    currentReader = reader;
+    const decoder = new TextDecoder();
+    let buf = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buf += decoder.decode(value, { stream: true });
+      const lines = buf.split('\n');
+      buf = lines.pop();
+
+      for (const line of lines) {
+        if (!line.startsWith('data: ')) continue;
+        const data = line.slice(6).trim();
+        if (!data || data === '[DONE]') continue;
+        try {
+          const parsed = JSON.parse(data);
+          if (parsed.type === 'content_block_delta' && parsed.delta?.type === 'text_delta') {
+            currentText += parsed.delta.text;
+            const detected = detectStep(currentText);
+            if (detected && detected !== activeStep) {
+              if (activeStep) setStep(activeStep, 'done');
+              activeStep = detected;
+              setStep(activeStep, 'active');
+            }
+            document.getElementById('output-body').innerHTML = renderMarkdown(currentText) + '<span class="cursor"></span>';
+            document.getElementById('output-body').parentElement.scrollTop = document.getElementById('output-body').parentElement.scrollHeight;
+          }
+        } catch(e) {}
+      }
+    }
+
+    // Done
+    STEPS.forEach(s => setStep(s, 'done'));
+    document.getElementById('output-body').innerHTML = renderMarkdown(currentText);
+    setStatus('done', 'Complete');
+
+    const verdict = extractVerdict(currentText);
+    if (verdict) showVerdictBanner(verdict);
+    showFollowUps(addr);
+    document.getElementById('action-row').style.display = 'flex';
+    saveToHistory({ address: addr, price, verdict, date: new Date().toLocaleDateString() });
+
+  } catch(e) {
+    if (e.name === 'AbortError' || e.message === 'STOPPED') {
+      document.getElementById('output-body').innerHTML = renderMarkdown(currentText) + '<br><em style="color:var(--text-faint);">— Analysis stopped —</em>';
+      setStatus('idle', 'Stopped');
+    } else {
+      document.getElementById('output-body').innerHTML = `<span style="color:var(--danger);">Error: ${e.message}</span>\n\nCheck your API key and ensure it has sufficient credits.`;
+      setStatus('error', 'Error');
+    }
+  }
+
+  document.getElementById('run-btn').disabled = false;
+  document.getElementById('run-btn').innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5 3 19 12 5 21 5 3"/></svg> Run full analysis`;
+  document.getElementById('stop-btn').style.display = 'none';
+  currentReader = null;
+}
+
+function stopAnalysis() {
+  if (currentReader) {
+    currentReader.cancel();
+    currentReader = null;
+  }
+}
+
+function setStatus(type, text) {
+  const el = document.getElementById('topbar-status');
+  el.className = 'topbar-status status-' + type;
+  el.textContent = text;
+}
+
+function extractVerdict(text) {
+  const patterns = [
+    'Pursue Aggressively', 'Pursue Only at Lower Price', 'Pursue',
+    'Study Further', 'Monitor', 'Pass'
+  ];
+  for (const p of patterns) {
+    if (text.includes('RECOMMENDATION: ' + p) || text.includes('**' + p + '**') || text.includes('## ' + p)) return p;
+  }
+  return null;
+}
+
+function showVerdictBanner(verdict) {
+  const banner = document.getElementById('verdict-banner');
+  const classMap = {
+    'Pursue Aggressively': 'verdict-pursue-agg',
+    'Pursue': 'verdict-pursue',
+    'Pursue Only at Lower Price': 'verdict-lower',
+    'Study Further': 'verdict-study',
+    'Monitor': 'verdict-monitor',
+    'Pass': 'verdict-pass'
+  };
+  const icon = verdict.includes('Pursue') && !verdict.includes('Lower') ? '✓' :
+               verdict === 'Pass' ? '✗' : '→';
+  banner.innerHTML = `<span>${icon}</span> Recommendation: ${verdict}`;
+  banner.className = 'verdict-banner visible ' + (classMap[verdict] || 'verdict-study');
+}
+
+function showFollowUps(addr) {
+  const sec = document.getElementById('followup-section');
+  const chips = document.getElementById('followup-chips');
+  const prompts = [
+    `Rerun the underwriting for ${addr} at 10% lower purchase price`,
+    `What are the top 3 risks on ${addr}?`,
+    `Detail the Option D unit layouts for ${addr}`,
+    `Run a 6-month delay sensitivity for ${addr}`,
+    `What is the maximum supportable land price for ${addr} at 20% margin?`
+  ];
+  chips.innerHTML = prompts.map(p =>
+    `<button class="followup-chip" onclick="appendPrompt('${p.replace(/'/g,"\\'")}')">${p}</button>`
+  ).join('');
+  sec.style.display = 'block';
+}
+
+function appendPrompt(text) {
+  document.getElementById('context').value = text;
+  document.getElementById('addr').focus();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function newAnalysis() {
+  document.getElementById('addr').value = '';
+  document.getElementById('price').value = '';
+  document.getElementById('context').value = '';
+  document.getElementById('output-card').classList.remove('visible');
+  document.getElementById('step-tracker').classList.remove('visible');
+  document.getElementById('verdict-banner').className = 'verdict-banner';
+  document.getElementById('action-row').style.display = 'none';
+  document.getElementById('empty-state').style.display = 'block';
+  setStatus('idle', 'Idle');
+  document.getElementById('topbar-addr').textContent = 'New analysis';
+  currentText = '';
+  document.getElementById('addr').focus();
+}
+
+// EXPORT
+function exportMarkdown() {
+  if (!currentText) return;
+  const blob = new Blob([`# SB1123 Analysis — ${currentAddr}\n_${new Date().toLocaleDateString()}_\n\n${currentText}`], { type: 'text/markdown' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `PUB_${currentAddr.replace(/[^a-z0-9]/gi,'_')}_${new Date().toISOString().slice(0,10)}.md`;
+  a.click();
+}
+
+function copyToClipboard() {
+  if (!currentText) return;
+  navigator.clipboard.writeText(currentText).then(() => {
+    const btn = document.querySelector('.action-btn');
+    btn.textContent = 'Copied!';
+    setTimeout(() => { btn.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg> Copy text`; }, 1500);
+  });
+}
+
+// INIT — runs after all functions are defined
+(function() {
+  const saved = localStorage.getItem('pub_api_key');
+  if (saved) { document.getElementById('api-key-input').value = saved; validateKey(); }
+  loadHistory();
+})();
+
+// MARKDOWN RENDERER
+function renderMarkdown(text) {
+  let html = text
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g, '<em>$1</em>')
+    .replace(/`([^`]+)`/g, '<code>$1</code>');
+
+  // Tables
+  html = html.replace(/((?:\|.+\|\n?)+)/g, (match) => {
+    const rows = match.trim().split('\n').filter(r => r.trim());
+    if (rows.length < 2) return match;
+    let table = '<table>';
+    rows.forEach((row, i) => {
+      if (row.match(/^\|[-| :]+\|$/)) return;
+      const cells = row.split('|').filter((c,j,a) => j > 0 && j < a.length-1);
+      const tag = i === 0 ? 'th' : 'td';
+      table += '<tr>' + cells.map(c => `<${tag}>${c.trim()}</${tag}>`).join('') + '</tr>';
+    });
+    return table + '</table>';
+  });
+
+  // Headers
+  html = html
+    .replace(/^## (.+)$/gm, '<h2>$1</h2>')
+    .replace(/^### (.+)$/gm, '<h3>$1</h3>')
+    .replace(/^#### (.+)$/gm, '<h3>$1</h3>');
+
+  // Lists
+  html = html.replace(/((?:^[-*] .+\n?)+)/gm, (match) => {
+    const items = match.trim().split('\n').map(l => `<li>${l.replace(/^[-*] /,'')}</li>`).join('');
+    return `<ul>${items}</ul>`;
+  });
+  html = html.replace(/((?:^\d+\. .+\n?)+)/gm, (match) => {
+    const items = match.trim().split('\n').map(l => `<li>${l.replace(/^\d+\. /,'')}</li>`).join('');
+    return `<ol>${items}</ol>`;
+  });
+
+  // Blockquotes
+  html = html.replace(/^> (.+)$/gm, '<blockquote>$1</blockquote>');
+
+  // Line breaks
+  html = html.replace(/\n{2,}/g, '</p><p>').replace(/\n/g, '<br>');
+  html = '<p>' + html + '</p>';
+  html = html.replace(/<p>(<h[23]>)/g,'$1').replace(/(<\/h[23]>)<\/p>/g,'$1');
+  html = html.replace(/<p>(<table>)/g,'$1').replace(/(<\/table>)<\/p>/g,'$1');
+  html = html.replace(/<p>(<[uo]l>)/g,'$1').replace(/(<\/[uo]l>)<\/p>/g,'$1');
+  html = html.replace(/<p>(<blockquote>)/g,'$1').replace(/(<\/blockquote>)<\/p>/g,'$1');
+  html = html.replace(/<p><\/p>/g,'').replace(/<p><br>/g,'<p>');
+
+  return html;
+}
+</script>
+
+</body>
+</html>
